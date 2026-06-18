@@ -10,28 +10,28 @@
 <style>
 
   :root {
-    /* Medfarms · Michigan — "Lush Forest" green on dark forest */
-    --bg: #15241a;
-    --bg-elev: #1c2f22;
-    --bg-elev-2: #26402f;
-    --border: #33543e;
-    --border-soft: #213528;
-    --text: #eaf6ed;
-    --text-dim: #9dc1a9;
-    --text-faint: #688a73;
-    --accent: #68ba7f;          /* Lush Forest sage — primary accent */
-    --accent-dim: #4d9461;
-    --accent-deep: #2e6f40;
-    --warm: #e0a85a;
-    --cool: #8fcba0;
-    --rose: #e07594;
-    --internal: #cfffdc;        /* mint — internal stores (distinct by lightness) */
-    --internal-dim: #5fa67d;
+    /* Medfarms · Michigan — "Lavender" light theme, purple accents */
+    --bg: #DAB1DA;             /* page — light lavender (client spec) */
+    --bg-elev: #faf6fd;        /* cards — near-white lavender */
+    --bg-elev-2: #f0e6f7;      /* table headers / hover surfaces */
+    --border: #c39ad2;
+    --border-soft: #e4d2ee;
+    --text: #2c1b3d;           /* deep purple-black */
+    --text-dim: #5e4a72;
+    --text-faint: #8a76a0;
+    --accent: #7c3aed;         /* vivid violet — primary accent */
+    --accent-dim: #9d6fe0;
+    --accent-deep: #5b21b6;
+    --warm: #c77d22;
+    --cool: #6f57c4;
+    --rose: #d6457f;
+    --internal: #b06fd6;       /* lighter purple — internal stores */
+    --internal-dim: #8a4fc0;
 
     /* surface + motion system */
     --radius: 10px;
     --radius-sm: 7px;
-    --shadow-card: inset 0 1px 0 rgba(234,246,237,0.03), 0 14px 34px -22px rgba(0,0,0,0.85);
+    --shadow-card: 0 1px 0 rgba(255,255,255,0.6) inset, 0 12px 30px -20px rgba(70,30,110,0.45);
     --ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
     --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
   }
@@ -49,8 +49,8 @@
   }
   body {
     background-image:
-      radial-gradient(ellipse 1200px 600px at 80% -10%, rgba(104,186,127,0.05), transparent 60%),
-      radial-gradient(ellipse 800px 400px at 0% 100%, rgba(46,111,64,0.06), transparent 60%);
+      radial-gradient(ellipse 1200px 600px at 80% -10%, rgba(124,58,237,0.08), transparent 60%),
+      radial-gradient(ellipse 800px 400px at 0% 100%, rgba(255,255,255,0.30), transparent 60%);
   }
 
   .font-display { font-family: 'Fraunces', serif; font-variation-settings: "opsz" 144; letter-spacing: -0.02em; }
@@ -116,7 +116,7 @@
   .other-menu {
     position: absolute; top: 100%; left: 0; z-index: 50; min-width: 250px; margin-top: 4px;
     background: var(--bg-elev-2); border: 1px solid var(--border); border-radius: 4px;
-    padding: 6px; box-shadow: 0 10px 28px rgba(0,0,0,0.55);
+    padding: 6px; box-shadow: 0 10px 28px rgba(70,30,110,0.28);
     display: flex; flex-direction: column; gap: 2px;
   }
   .other-item {
@@ -126,7 +126,7 @@
     font-family: 'Inter', sans-serif; font-size: 13px;
   }
   .other-item:hover { background: var(--bg-elev); }
-  .other-item.sel { background: rgba(104,186,127,0.10); color: var(--accent); }
+  .other-item.sel { background: rgba(124,58,237,0.10); color: var(--accent); }
   .other-rev { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-faint); }
 
   /* Quick range pills */
@@ -134,7 +134,7 @@
   .quick-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-faint); margin-right: 4px; }
   .quick-pill { background: var(--bg-elev); border: 1px solid var(--border); color: var(--text-dim); padding: 6px 13px; border-radius: 999px; font-family: 'JetBrains Mono', monospace; font-size: 11px; cursor: pointer; transition: color 0.18s var(--ease), border-color 0.18s var(--ease), background 0.18s var(--ease); }
   .quick-pill:hover { color: var(--text); border-color: var(--text-dim); }
-  .quick-pill.active { background: rgba(104,186,127,0.12); border-color: var(--accent-dim); color: var(--accent); }
+  .quick-pill.active { background: rgba(124,58,237,0.12); border-color: var(--accent-dim); color: var(--accent); }
 
   /* Scope cards */
   .scope-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 30px; }
@@ -214,7 +214,7 @@
   .data-table { width: 100%; border-collapse: collapse; font-size: 12px; }
   .data-table th { text-align: left; padding: 12px 16px; border-bottom: 1px solid var(--border); font-family: 'JetBrains Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-faint); font-weight: 500; background: var(--bg-elev-2); position: sticky; top: 0; }
   .data-table td { padding: 12px 16px; border-bottom: 1px solid var(--border-soft); color: var(--text); }
-  .data-table tr:hover td { background: rgba(104,186,127,0.03); }
+  .data-table tr:hover td { background: rgba(124,58,237,0.05); }
   .data-table .num { font-family: 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums; text-align: right; }
   .data-table .dim { color: var(--text-dim); }
 
@@ -225,7 +225,7 @@
     border-radius: 4px;
     padding: 26px 26px 30px;
     margin-bottom: 34px;
-    background: linear-gradient(180deg, rgba(207,255,220,0.05), transparent 220px);
+    background: linear-gradient(180deg, rgba(176,111,214,0.10), transparent 220px);
   }
   .internal-zone .kpi-accent .kpi-value { color: var(--internal); }
   .internal-zone .kpi::before { background: var(--internal); }
@@ -241,7 +241,7 @@
     border-left: 3px solid var(--accent);
     border-radius: var(--radius);
     padding: 26px 26px 30px;
-    background: linear-gradient(180deg, rgba(104,186,127,0.05), transparent 220px);
+    background: linear-gradient(180deg, rgba(124,58,237,0.08), transparent 220px);
   }
   .inv-badge {
     display: inline-block; font-family: 'JetBrains Mono', monospace; font-size: 10px;
@@ -252,9 +252,9 @@
 
   /* Status pill */
   .pill { display: inline-block; font-family: 'JetBrains Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; padding: 3px 8px; border-radius: 2px; border: 1px solid; }
-  .pill-completed { color: var(--accent); border-color: var(--accent-dim); background: rgba(104,186,127,0.06); }
-  .pill-pending { color: var(--warm); border-color: var(--warm); background: rgba(224,168,90,0.06); }
-  .pill-overdue { color: var(--rose); border-color: var(--rose); background: rgba(224,117,148,0.06); }
+  .pill-completed { color: var(--accent); border-color: var(--accent-dim); background: rgba(124,58,237,0.08); }
+  .pill-pending { color: var(--warm); border-color: var(--warm); background: rgba(199,125,34,0.12); }
+  .pill-overdue { color: var(--rose); border-color: var(--rose); background: rgba(214,69,127,0.12); }
 
   .empty { text-align: center; padding: 80px 20px; color: var(--text-dim); }
   .empty h2 { font-family: 'Fraunces', serif; font-weight: 400; font-style: italic; font-size: 28px; margin-bottom: 12px; color: var(--text); }
@@ -334,6 +334,53 @@
 
 .growth-badge { font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:700; letter-spacing:.03em;
   display:inline-flex; align-items:center; gap:6px; }
+
+/* --- revision 3: light theme polish, bigger scope cards, sticky footer --- */
+/* inputs readable on lavender page */
+.filter-input, .filter-select { background: var(--bg-elev); }
+
+/* brand buttons sit lower so they clear the topbar underline */
+.brand-btns { margin-top: 24px; }
+.brand-btn .brand-dot { box-shadow: 0 0 0 1px rgba(70,30,110,0.30) inset; }
+
+/* white text on dark-purple active states */
+.bn-active, .seg-active, .scope-active { color: #fff !important; }
+.bn-active .tab-sub { color: #fff; }
+
+/* Scope cards — bigger text, fuller cards */
+.scope-cards { gap: 16px; margin-bottom: 30px; }
+.scope-card { padding: 26px 28px; min-height: 132px; justify-content: center; gap: 10px; }
+.scope-label { font-size: 12px; letter-spacing: 0.16em; }
+.scope-value { font-size: 46px; line-height: 1.0; }
+@media (max-width: 1100px) { .scope-value { font-size: 38px; } }
+
+/* Reset button — make it pop */
+.filter-reset-lg {
+  background: var(--accent); border: 1.5px solid var(--accent-deep); color: #fff;
+  font-weight: 700; letter-spacing: 0.12em; padding: 12px 30px;
+  box-shadow: 0 6px 18px -6px rgba(124,58,237,0.65); transition: all .15s var(--ease);
+}
+.filter-reset-lg:hover { background: var(--accent-deep); color: #fff; transform: translateY(-1px); box-shadow: 0 9px 22px -6px rgba(124,58,237,0.75); }
+
+/* Sticky footer — brands + nav, slides up on scroll */
+.sticky-foot {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 60;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  padding: 10px 18px; background: rgba(250,246,253,0.94); backdrop-filter: blur(12px);
+  border-top: 1px solid var(--border); box-shadow: 0 -8px 24px -16px rgba(70,30,110,0.5);
+  transform: translateY(120%); opacity: 0; transition: transform .28s var(--ease), opacity .28s var(--ease);
+}
+.sticky-foot-show { transform: translateY(0); opacity: 1; }
+.sf-brands { display: flex; gap: 6px; flex-wrap: wrap; }
+.sf-brand { display: inline-flex; align-items: center; gap: 6px; font-family: 'Space Grotesk', sans-serif;
+  font-weight: 500; font-size: 11.5px; padding: 6px 12px; border: 1.5px solid; border-radius: 999px;
+  background: var(--bg-elev); cursor: pointer; transition: all .15s var(--ease); }
+.sf-brand:hover { transform: translateY(-1px); }
+.sf-brand-active { font-weight: 700; }
+.sf-dot { width: 8px; height: 8px; border-radius: 50%; box-shadow: 0 0 0 1px rgba(70,30,110,0.30) inset; }
+.sf-nav { display: flex; gap: 6px; }
+.sticky-foot .bn-tab { padding: 7px 16px; font-size: 12.5px; }
+@media (max-width: 760px) { .sf-brand-label { display: none; } .sf-brand { padding: 7px 9px; } }
 
 </style>
 </head>
@@ -475,22 +522,22 @@ const textOn = hex => {
 const AGING = [{
   key: 'current',
   label: 'Current',
-  color: '#68ba7f'
+  color: '#2e9e57'
 }, {
   key: 'b31',
   label: '31\u201360 days',
-  color: '#e8d83a'
+  color: '#caa11e'
 }, {
   key: 'b61',
   label: '61\u201390 days',
-  color: '#ef8c3a'
+  color: '#e07b2a'
 }, {
   key: 'b91',
   label: '91+ days',
-  color: '#e2554f'
+  color: '#d6433f'
 }];
 const agingBucket = days => days <= 30 ? AGING[0] : days <= 60 ? AGING[1] : days <= 90 ? AGING[2] : AGING[3];
-const SERIES_COLORS = ["#68ba7f", "#5aa9e0", "#e0a85a", "#e07594", "#e8e54a", "#8fcba0", "#cfe8d6", "#4d9461"];
+const SERIES_COLORS = ["#7c3aed", "#c026d3", "#9333ea", "#6d28d9", "#a855f7", "#d946ef", "#8b5cf6", "#c084fc"];
 const isPrimaryName = b => PRIMARY_BRANDS.includes((b || "").trim());
 const otherName = raw => {
   const b = (raw || "").trim();
@@ -747,22 +794,25 @@ function BrandButtons({
   value,
   onChange
 }) {
+  const list = brands.filter(b => b !== '100 Shafer');
   return /*#__PURE__*/React.createElement("div", {
     className: "brand-btns"
-  }, brands.map(b => {
+  }, list.map(b => {
     const active = value === b;
     const c = brandColor(b);
+    const light = textOn(c) === '#15241a'; // brand fill is pale (e.g. white, yellow)
+    const style = active ? {
+      background: c,
+      borderColor: light ? '#b58fc9' : c,
+      color: textOn(c)
+    } : {
+      borderColor: light ? 'var(--border)' : c,
+      color: light ? 'var(--text)' : c
+    };
     return /*#__PURE__*/React.createElement("button", {
       key: b,
       className: 'brand-btn' + (active ? ' brand-btn-active' : ''),
-      style: active ? {
-        background: c,
-        borderColor: c,
-        color: textOn(c)
-      } : {
-        borderColor: c,
-        color: c
-      },
+      style: style,
       onClick: () => onChange(active ? '' : b)
     }, /*#__PURE__*/React.createElement("span", {
       className: "brand-dot",
@@ -940,6 +990,61 @@ const groupByPeriod = (rows, grouping, valueOf) => {
   })).sort((a, b) => a.period.localeCompare(b.period));
 };
 
+/* ---- Sticky footer: appears on scroll; brand quick-filters + dashboard nav */
+function StickyFooter({
+  nav,
+  active,
+  brands,
+  brand,
+  onBrand
+}) {
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setShow(window.scrollY > 280);
+    window.addEventListener('scroll', onScroll, {
+      passive: true
+    });
+    onScroll();
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+  const list = (brands || []).filter(b => b !== '100 Shafer');
+  return /*#__PURE__*/React.createElement("nav", {
+    className: 'sticky-foot' + (show ? ' sticky-foot-show' : '')
+  }, onBrand && list.length > 0 && /*#__PURE__*/React.createElement("div", {
+    className: "sf-brands"
+  }, list.map(b => {
+    const on = brand === b;
+    const c = brandColor(b);
+    return /*#__PURE__*/React.createElement("button", {
+      key: b,
+      className: 'sf-brand' + (on ? ' sf-brand-active' : ''),
+      title: brandLabel(b),
+      style: on ? {
+        background: c,
+        borderColor: c,
+        color: textOn(c)
+      } : {
+        borderColor: c,
+        color: 'var(--text)'
+      },
+      onClick: () => onBrand(on ? '' : b)
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "sf-dot",
+      style: {
+        background: c
+      }
+    }), /*#__PURE__*/React.createElement("span", {
+      className: "sf-brand-label"
+    }, brandLabel(b)));
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "sf-nav"
+  }, nav.map(n => /*#__PURE__*/React.createElement("a", {
+    key: n.key,
+    href: n.href,
+    className: 'bn-tab' + (n.key === active ? ' bn-active' : '')
+  }, n.label))));
+}
+
 /* =====================================================================
    SALES DASHBOARD
    ===================================================================== */
@@ -971,10 +1076,10 @@ function BottomNav() {
   }, n.label)));
 }
 const PAY_COLORS = {
-  Paid: '#68ba7f',
-  Overdue: '#e2554f',
-  Unpaid: '#e8d83a',
-  Unknown: '#9dc1a9'
+  Paid: '#2e9e57',
+  Overdue: '#d6433f',
+  Unpaid: '#caa11e',
+  Unknown: '#9b87ad'
 };
 function App() {
   const {
@@ -1031,6 +1136,8 @@ function SalesDashboard({
   const rows = data.rows || [];
   const normalized = useMemo(() => normalizeRows(rows), [rows]);
   const fetchedAt = parseDate(data.fetched_at) || new Date();
+  const [invAging, setInvAging] = useState('');
+  const [invByRep, setInvByRep] = useState(false);
 
   // rows passing every filter EXCEPT scope and lastOrder (basis for scope cards + recency)
   const preScope = useMemo(() => normalized.filter(r => {
@@ -1216,6 +1323,30 @@ function SalesDashboard({
       value
     })).sort((a, b) => b.value - a.value);
   }, [filtered]);
+  const brandComparison = useMemo(() => {
+    const m = {};
+    filtered.forEach(r => {
+      r._primaries.forEach(b => {
+        m[b] = (m[b] || 0) + r._revenue;
+      });
+      if (r._hasOther) m['Other Brands'] = (m['Other Brands'] || 0) + r._revenue;
+    });
+    return PRIMARY_BRANDS.concat(['Other Brands']).map(b => ({
+      name: b,
+      value: m[b] || 0
+    })).filter(d => d.value > 0).sort((a, b) => b.value - a.value);
+  }, [filtered]);
+  const byCategory = useMemo(() => {
+    const m = {};
+    filtered.forEach(r => {
+      const k = r.product_category || r.product_type || '\u2014';
+      m[k] = (m[k] || 0) + r._revenue;
+    });
+    return Object.entries(m).map(([name, value]) => ({
+      name,
+      value
+    })).sort((a, b) => b.value - a.value);
+  }, [filtered]);
   const invoices = useMemo(() => {
     const m = {};
     filtered.forEach(r => {
@@ -1240,9 +1371,27 @@ function SalesDashboard({
     });
     return Object.values(m).map(o => ({
       ...o,
-      brands: [...o.brands]
+      brands: [...o.brands],
+      bucket: o._date ? agingBucket(daysBetween(refDate, o._date)) : AGING[3]
     })).sort((a, b) => (b._date?.getTime() || 0) - (a._date?.getTime() || 0));
-  }, [filtered]);
+  }, [filtered, refDate]);
+  const invoicesByRep = useMemo(() => {
+    const src = invAging ? invoices.filter(o => o.bucket.key === invAging) : invoices;
+    const m = {};
+    src.forEach(o => {
+      if (!m[o.rep]) m[o.rep] = {
+        name: o.rep || '\u2014',
+        invoices: 0,
+        units: 0,
+        revenue: 0
+      };
+      m[o.rep].invoices += 1;
+      m[o.rep].units += o.units;
+      m[o.rep].revenue += o.revenue;
+    });
+    return Object.values(m).sort((a, b) => b.revenue - a.revenue);
+  }, [invoices, invAging]);
+  const invoicesView = useMemo(() => invAging ? invoices.filter(o => o.bucket.key === invAging) : invoices, [invoices, invAging]);
   const paymentMix = useMemo(() => {
     const m = {};
     filtered.forEach(r => {
@@ -1528,6 +1677,116 @@ function SalesDashboard({
     }
   }, m.mom == null ? '\u2014' : (m.mom >= 0 ? '+' : '') + m.mom.toFixed(1) + '%')))))))), /*#__PURE__*/React.createElement("section", {
     className: "section"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "grid-2"
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(SectionHeader, {
+    title: "Brand",
+    em: "comparison",
+    meta: brandComparison.length + ' brands'
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      height: 320
+    }
+  }, /*#__PURE__*/React.createElement(ResponsiveContainer, {
+    width: "100%",
+    height: "100%"
+  }, /*#__PURE__*/React.createElement(BarChart, {
+    data: brandComparison,
+    layout: "vertical",
+    margin: {
+      top: 8,
+      right: 16,
+      left: 8,
+      bottom: 8
+    }
+  }, /*#__PURE__*/React.createElement(CartesianGrid, {
+    stroke: "var(--border-soft)",
+    strokeDasharray: "2 2",
+    horizontal: false
+  }), /*#__PURE__*/React.createElement(XAxis, {
+    type: "number",
+    stroke: "var(--text-faint)",
+    tick: {
+      fontSize: 11,
+      fontFamily: 'JetBrains Mono'
+    },
+    tickFormatter: fmtMoney,
+    axisLine: false,
+    tickLine: false
+  }), /*#__PURE__*/React.createElement(YAxis, {
+    type: "category",
+    dataKey: "name",
+    stroke: "var(--text-faint)",
+    tick: {
+      fontSize: 11
+    },
+    width: 120,
+    axisLine: false,
+    tickLine: false,
+    tickFormatter: brandLabel
+  }), /*#__PURE__*/React.createElement(Tooltip, {
+    contentStyle: {
+      background: 'var(--bg-elev)',
+      border: '1px solid var(--border)',
+      borderRadius: 8,
+      fontSize: 12
+    },
+    formatter: v => [fmtMoneyFull(v), 'Net revenue']
+  }), /*#__PURE__*/React.createElement(Bar, {
+    dataKey: "value",
+    name: "Net revenue",
+    radius: [0, 3, 3, 0]
+  }, brandComparison.map((d, i) => /*#__PURE__*/React.createElement(Cell, {
+    key: i,
+    fill: brandColor(d.name)
+  }))))))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(SectionHeader, {
+    title: "By",
+    em: "category",
+    meta: "mix"
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      height: 320,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    }
+  }, /*#__PURE__*/React.createElement(ResponsiveContainer, {
+    width: "100%",
+    height: "100%"
+  }, /*#__PURE__*/React.createElement(PieChart, null, /*#__PURE__*/React.createElement(Pie, {
+    data: byCategory,
+    dataKey: "value",
+    nameKey: "name",
+    cx: "50%",
+    cy: "50%",
+    innerRadius: 58,
+    outerRadius: 108,
+    paddingAngle: 2,
+    stroke: "var(--bg-elev)",
+    strokeWidth: 2
+  }, byCategory.map((d, i) => /*#__PURE__*/React.createElement(Cell, {
+    key: i,
+    fill: SERIES_COLORS[i % SERIES_COLORS.length]
+  }))), /*#__PURE__*/React.createElement(Tooltip, {
+    contentStyle: {
+      background: 'var(--bg-elev)',
+      border: '1px solid var(--border)',
+      borderRadius: 8,
+      fontSize: 12
+    },
+    formatter: v => fmtMoneyFull(v)
+  }), /*#__PURE__*/React.createElement(Legend, {
+    verticalAlign: "bottom",
+    iconType: "square",
+    wrapperStyle: {
+      fontSize: 11,
+      fontFamily: 'JetBrains Mono',
+      color: 'var(--text-dim)'
+    }
+  }))))))), /*#__PURE__*/React.createElement("section", {
+    className: "section"
   }, /*#__PURE__*/React.createElement(SectionHeader, {
     title: "Top product",
     em: "breakdown",
@@ -1595,11 +1854,44 @@ function SalesDashboard({
     data: byRep
   }))))), /*#__PURE__*/React.createElement("section", {
     className: "section"
-  }, /*#__PURE__*/React.createElement(SectionHeader, {
-    title: "Invoices",
-    em: "\xB7 per order",
-    meta: fmtNum(invoices.length) + ' invoices'
-  }), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "section-header",
+    style: {
+      flexWrap: 'wrap',
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("h2", {
+    className: "section-title"
+  }, "Invoices ", /*#__PURE__*/React.createElement("em", null, "\xB7 per order")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 12,
+      flexWrap: 'wrap'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "aging-btns"
+  }, AGING.map(a => /*#__PURE__*/React.createElement("button", {
+    key: a.key,
+    className: 'aging-btn' + (invAging === a.key ? ' aging-btn-active' : ''),
+    style: invAging === a.key ? {
+      background: a.color,
+      borderColor: a.color,
+      color: textOn(a.color)
+    } : {
+      borderColor: a.color,
+      color: a.color
+    },
+    onClick: () => setInvAging(invAging === a.key ? '' : a.key)
+  }, a.label.replace(' days', '')))), /*#__PURE__*/React.createElement("div", {
+    className: "seg"
+  }, /*#__PURE__*/React.createElement("button", {
+    className: 'seg-btn' + (!invByRep ? ' seg-active' : ''),
+    onClick: () => setInvByRep(false)
+  }, "Invoices"), /*#__PURE__*/React.createElement("button", {
+    className: 'seg-btn' + (invByRep ? ' seg-active' : ''),
+    onClick: () => setInvByRep(true)
+  }, "By rep")))), /*#__PURE__*/React.createElement("div", {
     className: "card",
     style: {
       padding: 0,
@@ -1610,13 +1902,33 @@ function SalesDashboard({
       overflowX: 'auto',
       maxHeight: 480
     }
-  }, /*#__PURE__*/React.createElement("table", {
+  }, invByRep ? /*#__PURE__*/React.createElement("table", {
     className: "data-table"
-  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "Invoice #"), /*#__PURE__*/React.createElement("th", null, "Date"), /*#__PURE__*/React.createElement("th", null, "Buyer"), /*#__PURE__*/React.createElement("th", null, "Rep"), /*#__PURE__*/React.createElement("th", null, "Brands"), /*#__PURE__*/React.createElement("th", {
+  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "Rep"), /*#__PURE__*/React.createElement("th", {
+    className: "num"
+  }, "Invoices"), /*#__PURE__*/React.createElement("th", {
     className: "num"
   }, "Units"), /*#__PURE__*/React.createElement("th", {
     className: "num"
-  }, "Revenue"), /*#__PURE__*/React.createElement("th", null, "Payment"))), /*#__PURE__*/React.createElement("tbody", null, invoices.slice(0, 150).map((o, i) => /*#__PURE__*/React.createElement("tr", {
+  }, "Revenue"), /*#__PURE__*/React.createElement("th", {
+    className: "num"
+  }, "Avg / Invoice"))), /*#__PURE__*/React.createElement("tbody", null, invoicesByRep.map((r, i) => /*#__PURE__*/React.createElement("tr", {
+    key: i
+  }, /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("strong", null, r.name)), /*#__PURE__*/React.createElement("td", {
+    className: "num"
+  }, fmtNum(r.invoices)), /*#__PURE__*/React.createElement("td", {
+    className: "num"
+  }, fmtNum(r.units)), /*#__PURE__*/React.createElement("td", {
+    className: "num"
+  }, /*#__PURE__*/React.createElement("strong", null, fmtMoneyFull(r.revenue))), /*#__PURE__*/React.createElement("td", {
+    className: "num dim"
+  }, fmtMoneyFull(r.invoices ? r.revenue / r.invoices : 0)))))) : /*#__PURE__*/React.createElement("table", {
+    className: "data-table"
+  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "Invoice #"), /*#__PURE__*/React.createElement("th", null, "Date"), /*#__PURE__*/React.createElement("th", null, "Aging"), /*#__PURE__*/React.createElement("th", null, "Buyer"), /*#__PURE__*/React.createElement("th", null, "Rep"), /*#__PURE__*/React.createElement("th", null, "Brands"), /*#__PURE__*/React.createElement("th", {
+    className: "num"
+  }, "Units"), /*#__PURE__*/React.createElement("th", {
+    className: "num"
+  }, "Revenue"), /*#__PURE__*/React.createElement("th", null, "Payment"))), /*#__PURE__*/React.createElement("tbody", null, invoicesView.slice(0, 150).map((o, i) => /*#__PURE__*/React.createElement("tr", {
     key: i
   }, /*#__PURE__*/React.createElement("td", {
     className: "font-mono",
@@ -1625,7 +1937,13 @@ function SalesDashboard({
     }
   }, o.invoice), /*#__PURE__*/React.createElement("td", {
     className: "dim font-mono"
-  }, o.date), /*#__PURE__*/React.createElement("td", null, o.buyer), /*#__PURE__*/React.createElement("td", {
+  }, o.date), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("span", {
+    className: "pill",
+    style: {
+      color: o.bucket.color,
+      borderColor: o.bucket.color
+    }
+  }, o.bucket.label.replace(' days', ''))), /*#__PURE__*/React.createElement("td", null, o.buyer), /*#__PURE__*/React.createElement("td", {
     className: "dim"
   }, o.rep), /*#__PURE__*/React.createElement("td", null, o.brands.map((b, j) => /*#__PURE__*/React.createElement("span", {
     key: j,
@@ -1640,9 +1958,9 @@ function SalesDashboard({
     className: "num"
   }, /*#__PURE__*/React.createElement("strong", null, fmtMoneyFull(o.revenue))), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement(StatusPill, {
     status: o.status
-  }))))))), invoices.length > 150 && /*#__PURE__*/React.createElement("div", {
+  }))))))), !invByRep && invoicesView.length > 150 && /*#__PURE__*/React.createElement("div", {
     className: "table-foot"
-  }, "Showing 150 of ", fmtNum(invoices.length)))), /*#__PURE__*/React.createElement("section", {
+  }, "Showing 150 of ", fmtNum(invoicesView.length), invAging ? ' (' + AGING.find(a => a.key === invAging).label + ')' : ''))), /*#__PURE__*/React.createElement("section", {
     className: "section"
   }, /*#__PURE__*/React.createElement(SectionHeader, {
     title: "Payment",
@@ -1788,7 +2106,13 @@ function SalesDashboard({
   }, inv.byBrand.map((d, i) => /*#__PURE__*/React.createElement(Cell, {
     key: i,
     fill: brandColor(d.name)
-  })))))))), /*#__PURE__*/React.createElement(BottomNav, null));
+  })))))))), /*#__PURE__*/React.createElement(StickyFooter, {
+    nav: NAV,
+    active: ACTIVE,
+    brands: distinct.brands,
+    brand: filters.brand,
+    onBrand: b => upd('brand', b)
+  }));
 }
 ReactDOM.createRoot(document.getElementById('root')).render(/*#__PURE__*/React.createElement(App, null));
 </script>
