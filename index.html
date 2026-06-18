@@ -309,6 +309,32 @@
 .aging-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:1px; background:var(--border);
   border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; margin-bottom:36px; }
 
+/* --- revision additions: brand buttons, aging buttons/cards, growth badge --- */
+.brand-btns { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:18px; }
+.brand-btn { display:inline-flex; align-items:center; gap:7px; font-family:'Space Grotesk',sans-serif; font-weight:500;
+  font-size:12.5px; letter-spacing:.01em; padding:8px 16px; background:var(--bg-elev); border:1.5px solid;
+  border-radius:999px; cursor:pointer; transition:all .15s var(--ease); }
+.brand-btn:hover { transform:translateY(-1px); filter:brightness(1.08); }
+.brand-btn .brand-dot { width:9px; height:9px; border-radius:50%; flex:0 0 auto; box-shadow:0 0 0 1px rgba(0,0,0,.15) inset; }
+.brand-btn-active { font-weight:600; box-shadow:0 2px 10px -2px rgba(0,0,0,.4); }
+.brand-btn-active .brand-dot { box-shadow:0 0 0 1px rgba(0,0,0,.25) inset; background:rgba(0,0,0,.35) !important; }
+
+.aging-btns { display:flex; gap:5px; }
+.aging-btn { font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:.04em; padding:8px 11px;
+  background:var(--bg-elev); border:1.5px solid; border-radius:var(--radius-sm); cursor:pointer;
+  transition:all .15s var(--ease); white-space:nowrap; }
+.aging-btn:hover { filter:brightness(1.12); }
+.aging-btn-active { font-weight:700; }
+
+.aging-card { text-align:left; background:var(--bg-elev); border:none; padding:18px 20px; cursor:pointer;
+  display:flex; flex-direction:column; gap:5px; transition:background .15s var(--ease); }
+.aging-card:hover { background:var(--bg-elev-2); }
+.aging-card-active { background:var(--bg-elev-2); box-shadow:inset 0 0 0 1px var(--accent-dim); }
+.aging-grid .kpi { border-radius:0; }
+
+.growth-badge { font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:700; letter-spacing:.03em;
+  display:inline-flex; align-items:center; gap:6px; }
+
 </style>
 </head>
 <body>
@@ -339,6 +365,7 @@ if (typeof Recharts === 'undefined') {
 }
 const {
   ResponsiveContainer,
+  ComposedChart,
   LineChart,
   Line,
   BarChart,
@@ -415,15 +442,54 @@ const EXCLUDED_STATUS = {
 // (Hyman=orange, Chill=blue, Covert=electric yellow, Homiez=hot pink,
 // Value Pak=light). Swap these exact hex values once Towbey sends the brand sheet.
 const BRAND_COLORS = {
-  "Hyman": "#e0a85a",
-  "Chill Medicated": "#5aa9e0",
-  "Covert Cups": "#e8e54a",
-  "Homiez": "#e07594",
-  "Value Pak Distro": "#cfe8d6",
+  "Hyman": "#ef8c3a",
+  // orange
+  "Chill Medicated": "#3f9ae0",
+  // blue
+  "Covert Cups": "#eaf031",
+  // electric yellow
+  "Homiez": "#ff479e",
+  // hot pink
+  "Value Pak Distro": "#f4f4f4",
+  // white
   "100 Shafer": "#68ba7f",
-  "Other Brands": "#8fcba0"
+  // (unspecified) green
+  "Other Brands": "#9dc1a9"
 };
-const brandColor = b => BRAND_COLORS[b] || "#8fcba0";
+const brandColor = b => BRAND_COLORS[b] || "#9dc1a9";
+const BRAND_LABEL = {
+  "Value Pak Distro": "Value Pak"
+};
+const brandLabel = b => BRAND_LABEL[b] || b;
+// readable text color on a given fill
+const textOn = hex => {
+  const c = String(hex).replace('#', '');
+  if (c.length < 6) return '#15241a';
+  const r = parseInt(c.slice(0, 2), 16),
+    g = parseInt(c.slice(2, 4), 16),
+    b = parseInt(c.slice(4, 6), 16);
+  return 0.299 * r + 0.587 * g + 0.114 * b > 150 ? '#15241a' : '#ffffff';
+};
+
+// Aging color scheme (client spec): Current green, 31-60 yellow, 61-90 orange, 91+ red
+const AGING = [{
+  key: 'current',
+  label: 'Current',
+  color: '#68ba7f'
+}, {
+  key: 'b31',
+  label: '31\u201360 days',
+  color: '#e8d83a'
+}, {
+  key: 'b61',
+  label: '61\u201390 days',
+  color: '#ef8c3a'
+}, {
+  key: 'b91',
+  label: '91+ days',
+  color: '#e2554f'
+}];
+const agingBucket = days => days <= 30 ? AGING[0] : days <= 60 ? AGING[1] : days <= 90 ? AGING[2] : AGING[3];
 const SERIES_COLORS = ["#68ba7f", "#5aa9e0", "#e0a85a", "#e07594", "#e8e54a", "#8fcba0", "#cfe8d6", "#4d9461"];
 const isPrimaryName = b => PRIMARY_BRANDS.includes((b || "").trim());
 const otherName = raw => {
@@ -653,12 +719,230 @@ function Empty({
   }, /*#__PURE__*/React.createElement("h2", null, title), children);
 }
 
+/* ---- Scope cards (External / Internal / Total) ---------------------- */
+function ScopeCards({
+  scope,
+  setScope,
+  values,
+  fmt
+}) {
+  const f = fmt || fmtMoney;
+  const items = [['external', 'External'], ['internal', 'Internal'], ['total', 'Total']];
+  return /*#__PURE__*/React.createElement("div", {
+    className: "scope-cards"
+  }, items.map(([k, l]) => /*#__PURE__*/React.createElement("button", {
+    key: k,
+    className: 'scope-card' + (k === 'internal' ? ' scope-internal' : '') + (scope === k ? ' active' : ''),
+    onClick: () => setScope(k)
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "scope-label"
+  }, l), /*#__PURE__*/React.createElement("div", {
+    className: "scope-value tabular"
+  }, f(values[k] || 0)))));
+}
+
+/* ---- Colored brand filter buttons ----------------------------------- */
+function BrandButtons({
+  brands,
+  value,
+  onChange
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    className: "brand-btns"
+  }, brands.map(b => {
+    const active = value === b;
+    const c = brandColor(b);
+    return /*#__PURE__*/React.createElement("button", {
+      key: b,
+      className: 'brand-btn' + (active ? ' brand-btn-active' : ''),
+      style: active ? {
+        background: c,
+        borderColor: c,
+        color: textOn(c)
+      } : {
+        borderColor: c,
+        color: c
+      },
+      onClick: () => onChange(active ? '' : b)
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "brand-dot",
+      style: {
+        background: c
+      }
+    }), brandLabel(b));
+  }));
+}
+
+/* ---- Reusable revenue-over-time chart (Day/Month/Year + growth trend) */
+function linregTrend(pts) {
+  const n = pts.length;
+  if (n < 2) return pts.map(p => ({
+    ...p,
+    trend: p.value
+  }));
+  let sx = 0,
+    sy = 0,
+    sxy = 0,
+    sxx = 0;
+  pts.forEach((p, i) => {
+    sx += i;
+    sy += p.value;
+    sxy += i * p.value;
+    sxx += i * i;
+  });
+  const den = n * sxx - sx * sx || 1;
+  const b = (n * sxy - sx * sy) / den,
+    a = (sy - b * sx) / n;
+  return pts.map((p, i) => ({
+    ...p,
+    trend: Math.max(0, a + b * i)
+  }));
+}
+function TimeSeriesChart({
+  title,
+  em,
+  data,
+  grouping,
+  setGrouping,
+  metricLabel
+}) {
+  const ml = metricLabel || 'Revenue';
+  const withTrend = linregTrend(data);
+  const first = data.length ? data[0].value : 0,
+    last = data.length ? data[data.length - 1].value : 0;
+  const growth = first ? (last - first) / first * 100 : null;
+  return /*#__PURE__*/React.createElement("section", {
+    className: "section"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "section-header"
+  }, /*#__PURE__*/React.createElement("h2", {
+    className: "section-title"
+  }, title, " ", em && /*#__PURE__*/React.createElement("em", null, em)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 14
+    }
+  }, growth != null && /*#__PURE__*/React.createElement("span", {
+    className: "growth-badge",
+    style: {
+      color: growth >= 0 ? 'var(--accent)' : '#e2554f'
+    }
+  }, growth >= 0 ? '\u25b2' : '\u25bc', " ", Math.abs(growth).toFixed(1), "% ", /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: 'var(--text-faint)'
+    }
+  }, "trend")), /*#__PURE__*/React.createElement("div", {
+    className: "seg"
+  }, [['day', 'Day'], ['month', 'Month'], ['year', 'Year']].map(([k, l]) => /*#__PURE__*/React.createElement("button", {
+    key: k,
+    className: 'seg-btn' + (grouping === k ? ' seg-active' : ''),
+    onClick: () => setGrouping(k)
+  }, l))))), /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      height: 320
+    }
+  }, /*#__PURE__*/React.createElement(ResponsiveContainer, {
+    width: "100%",
+    height: "100%"
+  }, /*#__PURE__*/React.createElement(ComposedChart, {
+    data: withTrend,
+    margin: {
+      top: 12,
+      right: 12,
+      left: 4,
+      bottom: 0
+    }
+  }, /*#__PURE__*/React.createElement("defs", null, /*#__PURE__*/React.createElement("linearGradient", {
+    id: "tsg",
+    x1: "0",
+    y1: "0",
+    x2: "0",
+    y2: "1"
+  }, /*#__PURE__*/React.createElement("stop", {
+    offset: "0%",
+    stopColor: "var(--accent)",
+    stopOpacity: 0.32
+  }), /*#__PURE__*/React.createElement("stop", {
+    offset: "100%",
+    stopColor: "var(--accent)",
+    stopOpacity: 0
+  }))), /*#__PURE__*/React.createElement(CartesianGrid, {
+    stroke: "var(--border-soft)",
+    strokeDasharray: "2 2",
+    vertical: false
+  }), /*#__PURE__*/React.createElement(XAxis, {
+    dataKey: "period",
+    stroke: "var(--text-faint)",
+    tick: {
+      fontSize: 11,
+      fontFamily: 'JetBrains Mono'
+    },
+    tickLine: false,
+    axisLine: {
+      stroke: 'var(--border)'
+    }
+  }), /*#__PURE__*/React.createElement(YAxis, {
+    stroke: "var(--text-faint)",
+    tick: {
+      fontSize: 11,
+      fontFamily: 'JetBrains Mono'
+    },
+    tickFormatter: fmtMoney,
+    tickLine: false,
+    axisLine: false
+  }), /*#__PURE__*/React.createElement(Tooltip, {
+    contentStyle: {
+      background: 'var(--bg-elev)',
+      border: '1px solid var(--border)',
+      borderRadius: 8,
+      fontSize: 12
+    },
+    formatter: (v, n) => [fmtMoneyFull(v), n === 'trend' ? 'Trend' : ml]
+  }), grouping === 'year' ? /*#__PURE__*/React.createElement(Bar, {
+    dataKey: "value",
+    name: ml,
+    radius: [3, 3, 0, 0]
+  }, withTrend.map((_, i) => /*#__PURE__*/React.createElement(Cell, {
+    key: i,
+    fill: SERIES_COLORS[i % SERIES_COLORS.length]
+  }))) : /*#__PURE__*/React.createElement(Area, {
+    type: "monotone",
+    dataKey: "value",
+    name: ml,
+    stroke: "var(--accent)",
+    strokeWidth: 2,
+    fill: "url(#tsg)"
+  }), /*#__PURE__*/React.createElement(Line, {
+    type: "monotone",
+    dataKey: "trend",
+    name: "trend",
+    stroke: "var(--warm)",
+    strokeWidth: 1.5,
+    strokeDasharray: "5 4",
+    dot: false
+  })))));
+}
+
+// Generic period grouping for a row set: returns [{period,value}] sorted.
+const groupByPeriod = (rows, grouping, valueOf) => {
+  const m = {};
+  rows.forEach(r => {
+    if (!r._date) return;
+    let k;
+    if (grouping === 'day') k = ymd(r._date);else if (grouping === 'year') k = String(r._date.getFullYear());else k = r._date.getFullYear() + '-' + String(r._date.getMonth() + 1).padStart(2, '0');
+    m[k] = (m[k] || 0) + valueOf(r);
+  });
+  return Object.entries(m).map(([period, value]) => ({
+    period,
+    value
+  })).sort((a, b) => a.period.localeCompare(b.period));
+};
+
 /* =====================================================================
    SALES DASHBOARD
    ===================================================================== */
-
-// Cross-dashboard nav. Update these to the deployed Pages URLs once each
-// repo exists; relative filenames work if they ever sit together.
 const NAV = [{
   key: 'sales',
   label: 'Sales',
@@ -686,12 +970,19 @@ function BottomNav() {
     className: 'bn-tab' + (n.key === ACTIVE ? ' bn-active' : '')
   }, n.label)));
 }
+const PAY_COLORS = {
+  Paid: '#68ba7f',
+  Overdue: '#e2554f',
+  Unpaid: '#e8d83a',
+  Unknown: '#9dc1a9'
+};
 function App() {
   const {
     data,
     error
   } = useData('sales_data.json.gz');
-  const [scope, setScope] = useState('external'); // external | internal | total
+  const [scope, setScope] = useState('external');
+  const [grouping, setGrouping] = useState('month');
   const [filters, setFilters] = useState({
     from: '',
     to: '',
@@ -702,8 +993,6 @@ function App() {
     lastOrder: '',
     excludeSamples: false
   });
-  const [grouping, setGrouping] = useState('month'); // day | month | year
-
   if (error) return /*#__PURE__*/React.createElement("div", {
     className: "app"
   }, /*#__PURE__*/React.createElement(Empty, {
@@ -724,65 +1013,28 @@ function App() {
     data: data,
     scope: scope,
     setScope: setScope,
-    filters: filters,
-    setFilters: setFilters,
     grouping: grouping,
-    setGrouping: setGrouping
+    setGrouping: setGrouping,
+    filters: filters,
+    setFilters: setFilters
   });
 }
 function SalesDashboard({
   data,
   scope,
   setScope,
-  filters,
-  setFilters,
   grouping,
-  setGrouping
+  setGrouping,
+  filters,
+  setFilters
 }) {
   const rows = data.rows || [];
   const normalized = useMemo(() => normalizeRows(rows), [rows]);
+  const fetchedAt = parseDate(data.fetched_at) || new Date();
 
-  // Per-buyer most-recent order (across all kept rows) for the Last Order Date filter.
-  const buyerLast = useMemo(() => {
-    const m = {};
-    normalized.forEach(r => {
-      if (r._bucket === 'excluded' || r._excludedStatus || !r._date) return;
-      const b = r.buyer_name || '';
-      if (!m[b] || r._date > m[b]) m[b] = r._date;
-    });
-    return m;
-  }, [normalized]);
-  const refDate = useMemo(() => {
-    let mx = null;
-    Object.values(buyerLast).forEach(d => {
-      if (!mx || d > mx) mx = d;
-    });
-    return mx || new Date();
-  }, [buyerLast]);
-  const distinct = useMemo(() => ({
-    brands: PRIMARY_BRANDS.filter(b => normalized.some(r => r._primaries.includes(b))),
-    buyers: [...new Set(normalized.filter(r => r._bucket !== 'excluded').map(r => r.buyer_name).filter(Boolean))].sort(),
-    reps: [...new Set(normalized.filter(r => r._bucket !== 'excluded').map(r => r._rep).filter(Boolean))].sort()
-  }), [normalized]);
-  const inScope = r => {
+  // rows passing every filter EXCEPT scope and lastOrder (basis for scope cards + recency)
+  const preScope = useMemo(() => normalized.filter(r => {
     if (r._bucket === 'excluded' || r._excludedStatus) return false;
-    if (scope === 'external') return r._bucket === 'wholesale';
-    if (scope === 'internal') return r._bucket === 'internal';
-    return true; // total
-  };
-  const lastOrderPass = r => {
-    if (!filters.lastOrder) return true;
-    const last = buyerLast[r.buyer_name];
-    if (!last) return false;
-    const age = daysBetween(refDate, last);
-    if (filters.lastOrder === '30') return age <= 30;
-    if (filters.lastOrder === '60') return age <= 60;
-    if (filters.lastOrder === '90') return age <= 90;
-    if (filters.lastOrder === '90+') return age > 90;
-    return true;
-  };
-  const filtered = useMemo(() => normalized.filter(r => {
-    if (!inScope(r)) return false;
     if (filters.from || filters.to) {
       if (!r._date) return false;
       const k = ymd(r._date);
@@ -793,81 +1045,103 @@ function SalesDashboard({
     if (filters.buyer && r.buyer_name !== filters.buyer) return false;
     if (filters.rep && r._rep !== filters.rep) return false;
     if (filters.excludeSamples && r.is_sample) return false;
-    if (!lastOrderPass(r)) return false;
     if (filters.search) {
       const q = filters.search.toLowerCase();
-      const hay = (String(r.order_number || '') + ' ' + String(r.order_uid || '') + ' ' + String(r.buyer_name || '') + ' ' + String(r.product_name || '') + ' ' + String(r._rep || '')).toLowerCase();
-      if (!hay.includes(q)) return false;
+      if (!(String(r.order_number || '') + ' ' + String(r.buyer_name || '') + ' ' + String(r.product_name || '') + ' ' + String(r._rep || '')).toLowerCase().includes(q)) return false;
     }
     return true;
-  }), [normalized, filters, scope, buyerLast, refDate]);
+  }), [normalized, filters]);
+  const scopeValues = useMemo(() => {
+    let ext = 0,
+      int = 0;
+    preScope.forEach(r => {
+      if (r._bucket === 'wholesale') ext += r._revenue;else if (r._bucket === 'internal') int += r._revenue;
+    });
+    return {
+      external: ext,
+      internal: int,
+      total: ext + int
+    };
+  }, [preScope]);
+
+  // per-buyer most recent order + recency bucket
+  const refDate = useMemo(() => {
+    let mx = null;
+    normalized.forEach(r => {
+      if (r._bucket !== 'excluded' && r._date && (!mx || r._date > mx)) mx = r._date;
+    });
+    return mx || new Date();
+  }, [normalized]);
+  const buyerBucket = useMemo(() => {
+    const last = {};
+    preScope.forEach(r => {
+      if (!r._date) return;
+      const b = r.buyer_name || '';
+      if (!last[b] || r._date > last[b]) last[b] = r._date;
+    });
+    const m = {};
+    Object.entries(last).forEach(([b, d]) => {
+      m[b] = agingBucket(daysBetween(refDate, d)).key;
+    });
+    return m;
+  }, [preScope, refDate]);
+  const inScope = r => scope === 'total' ? r._bucket === 'wholesale' || r._bucket === 'internal' : scope === 'external' ? r._bucket === 'wholesale' : r._bucket === 'internal';
+  const scoped = useMemo(() => preScope.filter(inScope), [preScope, scope]);
+  const filtered = useMemo(() => filters.lastOrder ? scoped.filter(r => buyerBucket[r.buyer_name] === filters.lastOrder) : scoped, [scoped, filters.lastOrder, buyerBucket]);
+  const distinct = useMemo(() => ({
+    brands: PRIMARY_BRANDS.filter(b => normalized.some(r => r._primaries.includes(b))),
+    buyers: [...new Set(normalized.filter(r => r._bucket !== 'excluded').map(r => r.buyer_name).filter(Boolean))].sort(),
+    reps: [...new Set(normalized.filter(r => r._bucket !== 'excluded').map(r => r._rep).filter(Boolean))].sort()
+  }), [normalized]);
+
+  // recency strip (per scope): buyers + revenue per bucket
+  const recency = useMemo(() => {
+    const m = {};
+    AGING.forEach(a => m[a.key] = {
+      buyers: new Set(),
+      revenue: 0
+    });
+    scoped.forEach(r => {
+      const k = buyerBucket[r.buyer_name];
+      if (!k) return;
+      m[k].buyers.add(r.buyer_name);
+      m[k].revenue += r._revenue;
+    });
+    return AGING.map(a => ({
+      ...a,
+      buyers: m[a.key].buyers.size,
+      revenue: m[a.key].revenue
+    }));
+  }, [scoped, buyerBucket]);
   const kpis = useMemo(() => {
-    const revenue = filtered.reduce((s, r) => s + r._revenue, 0);
     const gross = filtered.reduce((s, r) => s + r._gross, 0);
     const discounts = filtered.reduce((s, r) => s + r._discount, 0);
+    const revenue = filtered.reduce((s, r) => s + r._revenue, 0);
     const units = filtered.reduce((s, r) => s + r._units, 0);
     const orders = new Set(filtered.map(r => r._id).filter(Boolean)).size;
     const buyers = new Set(filtered.map(r => r.buyer_name).filter(Boolean)).size;
-    const byMonth = {};
+    const byM = {};
     filtered.forEach(r => {
       if (!r._date) return;
       const k = r._date.getFullYear() + '-' + String(r._date.getMonth() + 1).padStart(2, '0');
-      byMonth[k] = (byMonth[k] || 0) + r._revenue;
+      byM[k] = (byM[k] || 0) + r._revenue;
     });
-    const mk = Object.keys(byMonth).sort();
-    let mom = null,
-      momLabel = '\u2014';
-    if (mk.length >= 2) {
-      const a = byMonth[mk[mk.length - 1]],
-        b = byMonth[mk[mk.length - 2]];
-      if (b) {
-        mom = (a - b) / b * 100;
-        momLabel = mk[mk.length - 1] + ' vs ' + mk[mk.length - 2];
-      }
-    }
+    const mk = Object.keys(byM).sort();
+    let mom = null;
+    if (mk.length >= 2 && byM[mk[mk.length - 2]]) mom = (byM[mk[mk.length - 1]] - byM[mk[mk.length - 2]]) / byM[mk[mk.length - 2]] * 100;
     return {
-      revenue,
       gross,
       discounts,
+      revenue,
       units,
       orders,
       buyers,
       avgOrder: orders ? revenue / orders : 0,
       mom,
-      momLabel,
       lineItems: filtered.length
     };
   }, [filtered]);
-
-  // Brand comparison (contains semantics)
-  const brandComp = useMemo(() => {
-    const m = {};
-    PRIMARY_BRANDS.forEach(b => m[b] = 0);
-    filtered.forEach(r => r._primaries.forEach(b => {
-      m[b] += r._revenue;
-    }));
-    return Object.entries(m).map(([name, value]) => ({
-      name,
-      value
-    })).filter(d => d.value > 0).sort((a, b) => b.value - a.value);
-  }, [filtered]);
-
-  // Revenue over time
-  const series = useMemo(() => {
-    const m = {};
-    filtered.forEach(r => {
-      if (!r._date) return;
-      let k;
-      if (grouping === 'day') k = ymd(r._date);else if (grouping === 'year') k = String(r._date.getFullYear());else k = r._date.getFullYear() + '-' + String(r._date.getMonth() + 1).padStart(2, '0');
-      m[k] = (m[k] || 0) + r._revenue;
-    });
-    return Object.entries(m).map(([k, v]) => ({
-      period: k,
-      revenue: v
-    })).sort((a, b) => a.period.localeCompare(b.period));
-  }, [filtered, grouping]);
-
-  // Monthly breakdown (Month over Month)
+  const series = useMemo(() => groupByPeriod(filtered, grouping, r => r._revenue), [filtered, grouping]);
   const monthly = useMemo(() => {
     const m = {};
     filtered.forEach(r => {
@@ -895,22 +1169,6 @@ function SalesDashboard({
       mom: i > 0 && arr[i - 1].net ? (x.net - arr[i - 1].net) / arr[i - 1].net * 100 : null
     }));
   }, [filtered]);
-  const group = (key, n) => {
-    const m = {};
-    filtered.forEach(r => {
-      const k = r[key];
-      if (!k) return;
-      if (!m[k]) m[k] = {
-        name: k,
-        value: 0,
-        units: 0
-      };
-      m[k].value += r._revenue;
-      m[k].units += r._units;
-    });
-    return Object.values(m).sort((a, b) => b.value - a.value).slice(0, n || 10);
-  };
-  const topProducts = useMemo(() => group('product_name', 12), [filtered]);
   const productBreakdown = useMemo(() => {
     const m = {};
     filtered.forEach(r => {
@@ -918,7 +1176,6 @@ function SalesDashboard({
       if (!k) return;
       if (!m[k]) m[k] = {
         name: k,
-        line: r.product_line || '\u2014',
         brand: r._primaries[0] || otherName(r.brand),
         units: 0,
         gross: 0,
@@ -934,6 +1191,30 @@ function SalesDashboard({
       ...p,
       avg: p.units ? p.net / p.units : 0
     })).sort((a, b) => b.net - a.net);
+  }, [filtered]);
+  const topBuyers = useMemo(() => {
+    const m = {};
+    filtered.forEach(r => {
+      const k = r.buyer_name;
+      if (!k) return;
+      m[k] = (m[k] || 0) + r._revenue;
+    });
+    return Object.entries(m).map(([name, value]) => ({
+      name,
+      value
+    })).sort((a, b) => b.value - a.value).slice(0, 12);
+  }, [filtered]);
+  const byRep = useMemo(() => {
+    const m = {};
+    filtered.forEach(r => {
+      const k = r._rep;
+      if (!k) return;
+      m[k] = (m[k] || 0) + r._revenue;
+    });
+    return Object.entries(m).map(([name, value]) => ({
+      name,
+      value
+    })).sort((a, b) => b.value - a.value);
   }, [filtered]);
   const invoices = useMemo(() => {
     const m = {};
@@ -962,6 +1243,42 @@ function SalesDashboard({
       brands: [...o.brands]
     })).sort((a, b) => (b._date?.getTime() || 0) - (a._date?.getTime() || 0));
   }, [filtered]);
+  const paymentMix = useMemo(() => {
+    const m = {};
+    filtered.forEach(r => {
+      const k = r.payment_status || 'Unknown';
+      m[k] = (m[k] || 0) + r._revenue;
+    });
+    return Object.entries(m).map(([name, value]) => ({
+      name,
+      value
+    })).sort((a, b) => b.value - a.value);
+  }, [filtered]);
+
+  // current inventory (respects brand button)
+  const inv = useMemo(() => {
+    const items = (data.inventory || []).filter(p => !filters.brand || p.brand === filters.brand);
+    const onHand = items.reduce((s, p) => s + (+p.inventory || 0), 0);
+    const reserved = items.reduce((s, p) => s + (+p.reserved || 0), 0);
+    const available = items.reduce((s, p) => s + (p.available != null ? +p.available || 0 : (+p.inventory || 0) - (+p.reserved || 0)), 0);
+    const oos = items.filter(p => (p.available != null ? +p.available : (+p.inventory || 0) - (+p.reserved || 0)) <= 0).length;
+    const byBrand = {};
+    items.forEach(p => {
+      const b = p.brand || '\u2014';
+      byBrand[b] = (byBrand[b] || 0) + (+p.inventory || 0);
+    });
+    return {
+      onHand,
+      reserved,
+      available,
+      oos,
+      skus: items.length,
+      byBrand: Object.entries(byBrand).map(([name, value]) => ({
+        name,
+        value
+      })).sort((a, b) => b.value - a.value)
+    };
+  }, [data, filters.brand]);
   const reset = () => setFilters({
     from: '',
     to: '',
@@ -976,8 +1293,6 @@ function SalesDashboard({
     ...f,
     [k]: v
   }));
-  const fetchedAt = parseDate(data.fetched_at) || new Date(data.fetched_at);
-  const scopeLabel = scope === 'external' ? 'External' : scope === 'internal' ? 'Internal' : 'Total';
   return /*#__PURE__*/React.createElement("div", {
     className: "app",
     style: {
@@ -988,13 +1303,11 @@ function SalesDashboard({
     subtitle: "intelligence",
     fetchedAt: fetchedAt,
     right: /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("strong", null, fmtNum(kpis.lineItems)), " line items")
+  }), /*#__PURE__*/React.createElement(BrandButtons, {
+    brands: distinct.brands,
+    value: filters.brand,
+    onChange: b => upd('brand', b)
   }), /*#__PURE__*/React.createElement("div", {
-    className: "scope-row"
-  }, [['external', 'External'], ['internal', 'Internal'], ['total', 'Total']].map(([k, l]) => /*#__PURE__*/React.createElement("button", {
-    key: k,
-    className: 'scope-btn' + (scope === k ? ' scope-active' : ''),
-    onClick: () => setScope(k)
-  }, l))), /*#__PURE__*/React.createElement("div", {
     className: "filters"
   }, /*#__PURE__*/React.createElement("div", {
     className: "filter-group"
@@ -1015,18 +1328,6 @@ function SalesDashboard({
     value: filters.to,
     onChange: e => upd('to', e.target.value)
   })), /*#__PURE__*/React.createElement("div", {
-    className: "filter-group"
-  }, /*#__PURE__*/React.createElement("label", {
-    className: "filter-label"
-  }, "Brand"), /*#__PURE__*/React.createElement("select", {
-    className: "filter-select",
-    value: filters.brand,
-    onChange: e => upd('brand', e.target.value)
-  }, /*#__PURE__*/React.createElement("option", {
-    value: ""
-  }, "All"), distinct.brands.map(b => /*#__PURE__*/React.createElement("option", {
-    key: b
-  }, b)))), /*#__PURE__*/React.createElement("div", {
     className: "filter-group"
   }, /*#__PURE__*/React.createElement("label", {
     className: "filter-label"
@@ -1051,27 +1352,30 @@ function SalesDashboard({
   }, "All"), distinct.buyers.map(b => /*#__PURE__*/React.createElement("option", {
     key: b
   }, b)))), /*#__PURE__*/React.createElement("div", {
-    className: "filter-group"
-  }, /*#__PURE__*/React.createElement("label", {
-    className: "filter-label"
-  }, "Last Order"), /*#__PURE__*/React.createElement("select", {
-    className: "filter-select",
-    value: filters.lastOrder,
-    onChange: e => upd('lastOrder', e.target.value)
-  }, /*#__PURE__*/React.createElement("option", {
-    value: ""
-  }, "Any"), /*#__PURE__*/React.createElement("option", {
-    value: "30"
-  }, "\\u2264 30 days"), /*#__PURE__*/React.createElement("option", {
-    value: "60"
-  }, "\\u2264 60 days"), /*#__PURE__*/React.createElement("option", {
-    value: "90"
-  }, "\\u2264 90 days"), /*#__PURE__*/React.createElement("option", {
-    value: "90+"
-  }, "90+ days"))), /*#__PURE__*/React.createElement("div", {
     className: "filter-group",
     style: {
-      minWidth: 180
+      minWidth: 220
+    }
+  }, /*#__PURE__*/React.createElement("label", {
+    className: "filter-label"
+  }, "Last Order Date"), /*#__PURE__*/React.createElement("div", {
+    className: "aging-btns"
+  }, AGING.map(a => /*#__PURE__*/React.createElement("button", {
+    key: a.key,
+    className: 'aging-btn' + (filters.lastOrder === a.key ? ' aging-btn-active' : ''),
+    style: filters.lastOrder === a.key ? {
+      background: a.color,
+      borderColor: a.color,
+      color: textOn(a.color)
+    } : {
+      borderColor: a.color,
+      color: a.color
+    },
+    onClick: () => upd('lastOrder', filters.lastOrder === a.key ? '' : a.key)
+  }, a.label.replace(' days', ''))))), /*#__PURE__*/React.createElement("div", {
+    className: "filter-group",
+    style: {
+      minWidth: 170
     }
   }, /*#__PURE__*/React.createElement("label", {
     className: "filter-label"
@@ -1108,32 +1412,31 @@ function SalesDashboard({
   }), "Exclude samples")), /*#__PURE__*/React.createElement("button", {
     className: "filter-reset filter-reset-lg",
     onClick: reset
-  }, "Reset")), /*#__PURE__*/React.createElement("div", {
+  }, "Reset")), /*#__PURE__*/React.createElement(ScopeCards, {
+    scope: scope,
+    setScope: setScope,
+    values: scopeValues
+  }), /*#__PURE__*/React.createElement("div", {
     className: "kpi-grid"
   }, /*#__PURE__*/React.createElement(Kpi, {
-    label: 'Net Revenue \u00b7 ' + scopeLabel,
-    value: fmtMoney(kpis.revenue),
-    sub: fmtNum(kpis.lineItems) + ' line items',
-    accent: true
-  }), /*#__PURE__*/React.createElement(Kpi, {
     label: "Gross Sales",
     value: fmtMoney(kpis.gross),
-    sub: 'before discounts'
+    sub: "before discounts"
   }), /*#__PURE__*/React.createElement(Kpi, {
     label: "Discounts",
     value: fmtMoney(kpis.discounts),
     sub: kpis.gross ? (kpis.discounts / kpis.gross * 100).toFixed(1) + '% of gross' : '\u2014'
   }), /*#__PURE__*/React.createElement(Kpi, {
-    label: "MOM Change",
-    value: kpis.mom == null ? '\u2014' : (kpis.mom >= 0 ? '+' : '') + kpis.mom.toFixed(1) + '%',
-    sub: kpis.momLabel
-  })), /*#__PURE__*/React.createElement("div", {
-    className: "kpi-grid"
-  }, /*#__PURE__*/React.createElement(Kpi, {
     label: "Orders",
     value: fmtNum(kpis.orders),
     sub: fmtMoney(kpis.avgOrder) + ' avg order'
   }), /*#__PURE__*/React.createElement(Kpi, {
+    label: "MOM Change",
+    value: kpis.mom == null ? '\u2014' : (kpis.mom >= 0 ? '+' : '') + kpis.mom.toFixed(1) + '%',
+    sub: "latest vs prior month"
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "kpi-grid"
+  }, /*#__PURE__*/React.createElement(Kpi, {
     label: "Units Sold",
     value: fmtNum(kpis.units),
     sub: fmtNum(kpis.lineItems) + ' line items'
@@ -1142,140 +1445,48 @@ function SalesDashboard({
     value: fmtNum(kpis.buyers),
     sub: "unique accounts"
   }), /*#__PURE__*/React.createElement(Kpi, {
+    label: "Avg Order",
+    value: fmtMoneyFull(kpis.avgOrder),
+    sub: fmtNum(kpis.orders) + ' orders'
+  }), /*#__PURE__*/React.createElement(Kpi, {
     label: "Brands Active",
-    value: fmtNum(brandComp.length),
-    sub: 'of ' + PRIMARY_BRANDS.length + ' primary'
-  })), /*#__PURE__*/React.createElement("section", {
-    className: "section"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "section-header"
-  }, /*#__PURE__*/React.createElement("h2", {
-    className: "section-title"
-  }, "Revenue ", /*#__PURE__*/React.createElement("em", null, "over time")), /*#__PURE__*/React.createElement("div", {
-    className: "seg"
-  }, [['day', 'Day'], ['month', 'Month'], ['year', 'Year']].map(([k, l]) => /*#__PURE__*/React.createElement("button", {
-    key: k,
-    className: 'seg-btn' + (grouping === k ? ' seg-active' : ''),
-    onClick: () => setGrouping(k)
-  }, l)))), /*#__PURE__*/React.createElement("div", {
-    className: "card",
+    value: fmtNum(PRIMARY_BRANDS.filter(b => filtered.some(r => r._primaries.includes(b))).length),
+    sub: 'of ' + PRIMARY_BRANDS.length
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "aging-grid",
     style: {
-      height: 320
+      gridTemplateColumns: 'repeat(4,1fr)'
     }
-  }, /*#__PURE__*/React.createElement(ResponsiveContainer, {
-    width: "100%",
-    height: "100%"
-  }, grouping === 'year' ? /*#__PURE__*/React.createElement(BarChart, {
+  }, recency.map(a => /*#__PURE__*/React.createElement("button", {
+    key: a.key,
+    className: 'aging-card' + (filters.lastOrder === a.key ? ' aging-card-active' : ''),
+    style: {
+      borderTop: '2px solid ' + a.color
+    },
+    onClick: () => upd('lastOrder', filters.lastOrder === a.key ? '' : a.key)
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "kpi-label",
+    style: {
+      color: a.color
+    }
+  }, a.label), /*#__PURE__*/React.createElement("div", {
+    className: "kpi-value tabular",
+    style: {
+      fontSize: 26
+    }
+  }, fmtNum(a.buyers)), /*#__PURE__*/React.createElement("div", {
+    className: "kpi-sub"
+  }, "buyers \\u00b7 ", fmtMoney(a.revenue))))), /*#__PURE__*/React.createElement(TimeSeriesChart, {
+    title: "Revenue",
+    em: "over time",
     data: series,
-    margin: {
-      top: 12,
-      right: 12,
-      left: 4,
-      bottom: 0
-    }
-  }, /*#__PURE__*/React.createElement(CartesianGrid, {
-    stroke: "var(--border-soft)",
-    strokeDasharray: "2 2",
-    vertical: false
-  }), /*#__PURE__*/React.createElement(XAxis, {
-    dataKey: "period",
-    stroke: "var(--text-faint)",
-    tick: {
-      fontSize: 11,
-      fontFamily: 'JetBrains Mono'
-    },
-    tickLine: false,
-    axisLine: {
-      stroke: 'var(--border)'
-    }
-  }), /*#__PURE__*/React.createElement(YAxis, {
-    stroke: "var(--text-faint)",
-    tick: {
-      fontSize: 11,
-      fontFamily: 'JetBrains Mono'
-    },
-    tickLine: false,
-    axisLine: false,
-    tickFormatter: fmtMoney
-  }), /*#__PURE__*/React.createElement(Tooltip, {
-    contentStyle: {
-      background: 'var(--bg-elev)',
-      border: '1px solid var(--border)',
-      borderRadius: 8,
-      fontSize: 12
-    },
-    formatter: v => [fmtMoneyFull(v), 'Revenue']
-  }), /*#__PURE__*/React.createElement(Bar, {
-    dataKey: "revenue",
-    radius: [3, 3, 0, 0]
-  }, series.map((_, i) => /*#__PURE__*/React.createElement(Cell, {
-    key: i,
-    fill: SERIES_COLORS[i % SERIES_COLORS.length]
-  })))) : /*#__PURE__*/React.createElement(AreaChart, {
-    data: series,
-    margin: {
-      top: 12,
-      right: 12,
-      left: 4,
-      bottom: 0
-    }
-  }, /*#__PURE__*/React.createElement("defs", null, /*#__PURE__*/React.createElement("linearGradient", {
-    id: "rg",
-    x1: "0",
-    y1: "0",
-    x2: "0",
-    y2: "1"
-  }, /*#__PURE__*/React.createElement("stop", {
-    offset: "0%",
-    stopColor: "var(--accent)",
-    stopOpacity: 0.4
-  }), /*#__PURE__*/React.createElement("stop", {
-    offset: "100%",
-    stopColor: "var(--accent)",
-    stopOpacity: 0
-  }))), /*#__PURE__*/React.createElement(CartesianGrid, {
-    stroke: "var(--border-soft)",
-    strokeDasharray: "2 2",
-    vertical: false
-  }), /*#__PURE__*/React.createElement(XAxis, {
-    dataKey: "period",
-    stroke: "var(--text-faint)",
-    tick: {
-      fontSize: 11,
-      fontFamily: 'JetBrains Mono'
-    },
-    tickLine: false,
-    axisLine: {
-      stroke: 'var(--border)'
-    }
-  }), /*#__PURE__*/React.createElement(YAxis, {
-    stroke: "var(--text-faint)",
-    tick: {
-      fontSize: 11,
-      fontFamily: 'JetBrains Mono'
-    },
-    tickLine: false,
-    axisLine: false,
-    tickFormatter: fmtMoney
-  }), /*#__PURE__*/React.createElement(Tooltip, {
-    contentStyle: {
-      background: 'var(--bg-elev)',
-      border: '1px solid var(--border)',
-      borderRadius: 8,
-      fontSize: 12
-    },
-    formatter: v => [fmtMoneyFull(v), 'Revenue']
-  }), /*#__PURE__*/React.createElement(Area, {
-    type: "monotone",
-    dataKey: "revenue",
-    stroke: "var(--accent)",
-    strokeWidth: 2,
-    fill: "url(#rg)"
-  }))))), /*#__PURE__*/React.createElement("section", {
+    grouping: grouping,
+    setGrouping: setGrouping
+  }), /*#__PURE__*/React.createElement("section", {
     className: "section"
   }, /*#__PURE__*/React.createElement(SectionHeader, {
-    title: "Month",
-    em: "over month",
+    title: "Monthly",
+    em: "breakdown",
     meta: monthly.length + ' months'
   }), /*#__PURE__*/React.createElement("div", {
     className: "card",
@@ -1313,83 +1524,12 @@ function SalesDashboard({
   }, /*#__PURE__*/React.createElement("strong", null, fmtMoneyFull(m.net))), /*#__PURE__*/React.createElement("td", {
     className: "num",
     style: {
-      color: m.mom == null ? 'var(--text-faint)' : m.mom >= 0 ? 'var(--accent)' : 'var(--rose)'
+      color: m.mom == null ? 'var(--text-faint)' : m.mom >= 0 ? 'var(--accent)' : '#e2554f'
     }
   }, m.mom == null ? '\u2014' : (m.mom >= 0 ? '+' : '') + m.mom.toFixed(1) + '%')))))))), /*#__PURE__*/React.createElement("section", {
     className: "section"
   }, /*#__PURE__*/React.createElement(SectionHeader, {
-    title: "Brand",
-    em: 'comparison \u00b7 ' + scopeLabel,
-    meta: "contains attribution"
-  }), /*#__PURE__*/React.createElement("div", {
-    className: "card",
-    style: {
-      height: 320
-    }
-  }, /*#__PURE__*/React.createElement(ResponsiveContainer, {
-    width: "100%",
-    height: "100%"
-  }, /*#__PURE__*/React.createElement(BarChart, {
-    data: brandComp,
-    layout: "vertical",
-    margin: {
-      top: 8,
-      right: 16,
-      left: 8,
-      bottom: 8
-    }
-  }, /*#__PURE__*/React.createElement(CartesianGrid, {
-    stroke: "var(--border-soft)",
-    strokeDasharray: "2 2",
-    horizontal: false
-  }), /*#__PURE__*/React.createElement(XAxis, {
-    type: "number",
-    stroke: "var(--text-faint)",
-    tick: {
-      fontSize: 11,
-      fontFamily: 'JetBrains Mono'
-    },
-    tickFormatter: fmtMoney,
-    axisLine: false,
-    tickLine: false
-  }), /*#__PURE__*/React.createElement(YAxis, {
-    type: "category",
-    dataKey: "name",
-    stroke: "var(--text-faint)",
-    tick: {
-      fontSize: 11
-    },
-    width: 130,
-    axisLine: false,
-    tickLine: false
-  }), /*#__PURE__*/React.createElement(Tooltip, {
-    contentStyle: {
-      background: 'var(--bg-elev)',
-      border: '1px solid var(--border)',
-      borderRadius: 8,
-      fontSize: 12
-    },
-    formatter: v => [fmtMoneyFull(v), 'Revenue']
-  }), /*#__PURE__*/React.createElement(Bar, {
-    dataKey: "value",
-    radius: [0, 3, 3, 0]
-  }, brandComp.map((d, i) => /*#__PURE__*/React.createElement(Cell, {
-    key: i,
-    fill: brandColor(d.name)
-  }))))))), /*#__PURE__*/React.createElement("section", {
-    className: "section"
-  }, /*#__PURE__*/React.createElement(SectionHeader, {
-    title: "Top",
-    em: "products",
-    meta: 'top ' + topProducts.length
-  }), /*#__PURE__*/React.createElement("div", {
-    className: "card"
-  }, /*#__PURE__*/React.createElement(RankList, {
-    data: topProducts
-  }))), /*#__PURE__*/React.createElement("section", {
-    className: "section"
-  }, /*#__PURE__*/React.createElement(SectionHeader, {
-    title: "Product",
+    title: "Top product",
     em: "breakdown",
     meta: fmtNum(productBreakdown.length) + ' products'
   }), /*#__PURE__*/React.createElement("div", {
@@ -1421,7 +1561,7 @@ function SalesDashboard({
     style: {
       color: brandColor(p.brand)
     }
-  }, p.brand), /*#__PURE__*/React.createElement("td", {
+  }, brandLabel(p.brand)), /*#__PURE__*/React.createElement("td", {
     className: "num"
   }, fmtNum(p.units)), /*#__PURE__*/React.createElement("td", {
     className: "num"
@@ -1433,7 +1573,27 @@ function SalesDashboard({
     className: "num dim"
   }, fmtMoneyFull(p.avg))))))), productBreakdown.length > 150 && /*#__PURE__*/React.createElement("div", {
     className: "table-foot"
-  }, "Showing top 150 of ", fmtNum(productBreakdown.length), " products"))), /*#__PURE__*/React.createElement("section", {
+  }, "Showing top 150 of ", fmtNum(productBreakdown.length)))), /*#__PURE__*/React.createElement("section", {
+    className: "section"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "grid-half"
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(SectionHeader, {
+    title: "Top",
+    em: "buyers",
+    meta: 'top ' + topBuyers.length
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "card"
+  }, /*#__PURE__*/React.createElement(RankList, {
+    data: topBuyers
+  }))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(SectionHeader, {
+    title: "By",
+    em: "rep",
+    meta: byRep.length + ' reps'
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "card"
+  }, /*#__PURE__*/React.createElement(RankList, {
+    data: byRep
+  }))))), /*#__PURE__*/React.createElement("section", {
     className: "section"
   }, /*#__PURE__*/React.createElement(SectionHeader, {
     title: "Invoices",
@@ -1474,7 +1634,7 @@ function SalesDashboard({
       color: brandColor(b),
       borderColor: brandColor(b)
     }
-  }, b))), /*#__PURE__*/React.createElement("td", {
+  }, brandLabel(b)))), /*#__PURE__*/React.createElement("td", {
     className: "num"
   }, fmtNum(o.units)), /*#__PURE__*/React.createElement("td", {
     className: "num"
@@ -1482,7 +1642,153 @@ function SalesDashboard({
     status: o.status
   }))))))), invoices.length > 150 && /*#__PURE__*/React.createElement("div", {
     className: "table-foot"
-  }, "Showing 150 of ", fmtNum(invoices.length), " \\u00b7 use filters to narrow"))), /*#__PURE__*/React.createElement(BottomNav, null));
+  }, "Showing 150 of ", fmtNum(invoices.length)))), /*#__PURE__*/React.createElement("section", {
+    className: "section"
+  }, /*#__PURE__*/React.createElement(SectionHeader, {
+    title: "Payment",
+    em: "status",
+    meta: "AR mix"
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "grid-2"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      height: 300,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    }
+  }, /*#__PURE__*/React.createElement(ResponsiveContainer, {
+    width: "100%",
+    height: "100%"
+  }, /*#__PURE__*/React.createElement(PieChart, null, /*#__PURE__*/React.createElement(Pie, {
+    data: paymentMix,
+    dataKey: "value",
+    nameKey: "name",
+    cx: "50%",
+    cy: "50%",
+    innerRadius: 60,
+    outerRadius: 108,
+    paddingAngle: 2,
+    stroke: "var(--bg)",
+    strokeWidth: 2
+  }, paymentMix.map((d, i) => /*#__PURE__*/React.createElement(Cell, {
+    key: i,
+    fill: PAY_COLORS[d.name] || '#9dc1a9'
+  }))), /*#__PURE__*/React.createElement(Tooltip, {
+    contentStyle: {
+      background: 'var(--bg-elev)',
+      border: '1px solid var(--border)',
+      borderRadius: 8,
+      fontSize: 12
+    },
+    formatter: v => fmtMoneyFull(v)
+  }), /*#__PURE__*/React.createElement(Legend, {
+    verticalAlign: "bottom",
+    iconType: "square",
+    wrapperStyle: {
+      fontSize: 11,
+      fontFamily: 'JetBrains Mono',
+      color: 'var(--text-dim)'
+    }
+  })))), /*#__PURE__*/React.createElement("div", {
+    className: "card"
+  }, /*#__PURE__*/React.createElement(RankList, {
+    data: paymentMix
+  })))), /*#__PURE__*/React.createElement("section", {
+    className: "section"
+  }, /*#__PURE__*/React.createElement(SectionHeader, {
+    title: "Current",
+    em: "inventory",
+    meta: fmtNum(inv.skus) + ' SKUs'
+  }), inv.skus === 0 ? /*#__PURE__*/React.createElement("div", {
+    className: "card"
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: 20,
+      color: 'var(--text-faint)',
+      textAlign: 'center',
+      fontSize: 13
+    }
+  }, "No inventory for this brand selection")) : /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "kpi-grid",
+    style: {
+      marginBottom: 24
+    }
+  }, /*#__PURE__*/React.createElement(Kpi, {
+    label: "Units On Hand",
+    value: fmtNum(inv.onHand),
+    accent: true,
+    sub: fmtNum(inv.skus) + ' SKUs'
+  }), /*#__PURE__*/React.createElement(Kpi, {
+    label: "Reserved",
+    value: fmtNum(inv.reserved),
+    sub: "committed"
+  }), /*#__PURE__*/React.createElement(Kpi, {
+    label: "Available",
+    value: fmtNum(inv.available),
+    sub: "on hand \\u2212 reserved"
+  }), /*#__PURE__*/React.createElement(Kpi, {
+    label: "Out of Stock",
+    value: fmtNum(inv.oos),
+    color: inv.oos ? '#e2554f' : null,
+    sub: "SKUs at 0"
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      height: 280
+    }
+  }, /*#__PURE__*/React.createElement(ResponsiveContainer, {
+    width: "100%",
+    height: "100%"
+  }, /*#__PURE__*/React.createElement(BarChart, {
+    data: inv.byBrand,
+    margin: {
+      top: 12,
+      right: 12,
+      left: 4,
+      bottom: 0
+    }
+  }, /*#__PURE__*/React.createElement(CartesianGrid, {
+    stroke: "var(--border-soft)",
+    strokeDasharray: "2 2",
+    vertical: false
+  }), /*#__PURE__*/React.createElement(XAxis, {
+    dataKey: "name",
+    stroke: "var(--text-faint)",
+    tick: {
+      fontSize: 11
+    },
+    axisLine: {
+      stroke: 'var(--border)'
+    },
+    tickLine: false,
+    tickFormatter: brandLabel
+  }), /*#__PURE__*/React.createElement(YAxis, {
+    stroke: "var(--text-faint)",
+    tick: {
+      fontSize: 11,
+      fontFamily: 'JetBrains Mono'
+    },
+    tickFormatter: fmtNum,
+    axisLine: false,
+    tickLine: false
+  }), /*#__PURE__*/React.createElement(Tooltip, {
+    contentStyle: {
+      background: 'var(--bg-elev)',
+      border: '1px solid var(--border)',
+      borderRadius: 8,
+      fontSize: 12
+    },
+    formatter: v => [fmtNum(v), 'On hand']
+  }), /*#__PURE__*/React.createElement(Bar, {
+    dataKey: "value",
+    name: "On hand",
+    radius: [3, 3, 0, 0]
+  }, inv.byBrand.map((d, i) => /*#__PURE__*/React.createElement(Cell, {
+    key: i,
+    fill: brandColor(d.name)
+  })))))))), /*#__PURE__*/React.createElement(BottomNav, null));
 }
 ReactDOM.createRoot(document.getElementById('root')).render(/*#__PURE__*/React.createElement(App, null));
 </script>
