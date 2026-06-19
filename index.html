@@ -1262,7 +1262,7 @@ function SalesDashboard({
 }) {
   const rows = data.rows || [];
   const normalized = useMemo(() => normalizeRows(rows), [rows]);
-  const fetchedAt = parseDate(data.fetched_at) || new Date();
+  const fetchedAt = data.fetched_at ? new Date(data.fetched_at) : new Date();
   const [invAging, setInvAging] = useState('');
   const [selectedOrder, setSelectedOrder] = useState('');
   const [invByRep, setInvByRep] = useState(false);
