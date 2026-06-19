@@ -1563,6 +1563,8 @@ function SalesDashboard({
     };
   }, [data, filters.brand]);
   const buyerPager = usePager(topBuyers, 15);
+  const productPager = usePager(productBreakdown, 25);
+  const invPager = usePager(invoicesView, 25);
   const reset = () => setFilters({
     from: '',
     to: '',
@@ -1910,7 +1912,7 @@ function SalesDashboard({
     className: "num"
   }, "Net"), /*#__PURE__*/React.createElement("th", {
     className: "num"
-  }, "Avg $"))), /*#__PURE__*/React.createElement("tbody", null, productBreakdown.slice(0, 150).map((p, i) => /*#__PURE__*/React.createElement("tr", {
+  }, "Avg $"))), /*#__PURE__*/React.createElement("tbody", null, productPager.slice.map((p, i) => /*#__PURE__*/React.createElement("tr", {
     key: i
   }, /*#__PURE__*/React.createElement("td", null, p.name), /*#__PURE__*/React.createElement("td", {
     style: {
@@ -1926,9 +1928,9 @@ function SalesDashboard({
     className: "num"
   }, /*#__PURE__*/React.createElement("strong", null, fmtMoneyFull(p.net))), /*#__PURE__*/React.createElement("td", {
     className: "num dim"
-  }, fmtMoneyFull(p.avg))))))), productBreakdown.length > 150 && /*#__PURE__*/React.createElement("div", {
-    className: "table-foot"
-  }, "Showing top 150 of ", fmtNum(productBreakdown.length)))), /*#__PURE__*/React.createElement("section", {
+  }, fmtMoneyFull(p.avg))))))), /*#__PURE__*/React.createElement(Pager, {
+    pager: productPager
+  }))), /*#__PURE__*/React.createElement("section", {
     className: "section"
   }, /*#__PURE__*/React.createElement(SectionHeader, {
     title: "By",
@@ -2076,7 +2078,7 @@ function SalesDashboard({
     className: "num"
   }, "Units"), /*#__PURE__*/React.createElement("th", {
     className: "num"
-  }, "Revenue"), /*#__PURE__*/React.createElement("th", null, "Payment"))), /*#__PURE__*/React.createElement("tbody", null, invoicesView.slice(0, 150).map((o, i) => /*#__PURE__*/React.createElement("tr", {
+  }, "Revenue"), /*#__PURE__*/React.createElement("th", null, "Payment"))), /*#__PURE__*/React.createElement("tbody", null, invPager.slice.map((o, i) => /*#__PURE__*/React.createElement("tr", {
     key: i,
     onClick: () => setSelectedOrder(selectedOrder === o.id ? '' : o.id),
     style: selectedOrder === o.id ? {
@@ -2110,9 +2112,9 @@ function SalesDashboard({
     className: "num"
   }, /*#__PURE__*/React.createElement("strong", null, fmtMoneyFull(o.revenue))), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement(StatusPill, {
     status: o.status
-  }))))))), !invByRep && invoicesView.length > 150 && /*#__PURE__*/React.createElement("div", {
-    className: "table-foot"
-  }, "Showing 150 of ", fmtNum(invoicesView.length), invAging ? ' (' + AGING.find(a => a.key === invAging).label + ')' : ''))), /*#__PURE__*/React.createElement("section", {
+  }))))))), !invByRep && /*#__PURE__*/React.createElement(Pager, {
+    pager: invPager
+  }))), /*#__PURE__*/React.createElement("section", {
     className: "section"
   }, /*#__PURE__*/React.createElement(SectionHeader, {
     title: "Payment",
