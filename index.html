@@ -1618,14 +1618,21 @@ function SalesDashboard({
   }, [normalized]);
   const inScope = r => scope === 'total' ? r._bucket === 'wholesale' || r._bucket === 'internal' : scope === 'external' ? r._bucket === 'wholesale' : r._bucket === 'internal';
   const scoped = useMemo(() => preScope.filter(inScope), [preScope, scope]);
-  const inWin = (r, key) => {
-    if (!r._date) return false;
-    const d = daysBetween(new Date(), r._date);
-    if (key === 'w90p') return d > 90;
-    const w = WINDOWS.find(x => x.key === key);
-    return w ? d <= w.days : true;
-  };
-  const filtered = useMemo(() => filters.lastOrder ? scoped.filter(r => inWin(r, filters.lastOrder)) : scoped, [scoped, filters.lastOrder, refDate]);
+  const buyerLastOrder = useMemo(() => {
+    const last = {};
+    preScope.forEach(r => {
+      if (!r._date) return;
+      const b = r.buyer_name || '';
+      if (!last[b] || r._date > last[b]) last[b] = r._date;
+    });
+    const m = {};
+    Object.entries(last).forEach(([b, d]) => {
+      const days = daysBetween(new Date(), d);
+      m[b] = filters.lastOrder === 'w90p' ? days > 90 : WINDOWS.some(w => w.key === filters.lastOrder && days <= w.days);
+    });
+    return m;
+  }, [preScope, filters.lastOrder]);
+  const filtered = useMemo(() => filters.lastOrder ? scoped.filter(r => buyerLastOrder[r.buyer_name]) : scoped, [scoped, filters.lastOrder, buyerLastOrder]);
   const distinct = useMemo(() => ({
     brands: PRIMARY_BRANDS.filter(b => normalized.some(r => r._primaries.includes(b))),
     buyers: [...new Set(normalized.filter(r => r._bucket !== 'excluded').map(r => r.buyer_name).filter(Boolean))].sort(),
