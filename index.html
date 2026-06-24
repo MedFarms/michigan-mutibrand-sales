@@ -409,7 +409,7 @@
 .kpi { align-items: center; text-align: center; justify-content: center; min-height: 124px; gap: 9px; padding: 24px 18px; }
 .kpi-label { text-align: center; }
 .kpi-value { font-size: 44px; line-height: 1.04; overflow-wrap: anywhere; }
-.kpi-sub { text-align: center; }
+.kpi-sub { text-align: center; font-size: 14px; }
 
 .scope-card { align-items: center; text-align: center; justify-content: center; min-height: 148px; }
 .scope-label { text-align: center; }
@@ -2311,11 +2311,11 @@ function SalesDashboard({
     data: byCategory,
     dataKey: "value",
     nameKey: "name",
-    cx: "42%",
+    cx: "50%",
     cy: "50%",
-    innerRadius: 64,
-    outerRadius: 125,
-    paddingAngle: 2,
+    innerRadius: 76,
+    outerRadius: 155,
+    paddingAngle: 1.5,
     stroke: "var(--bg-elev)",
     strokeWidth: 2
   }, byCategory.map((d, i) => /*#__PURE__*/React.createElement(Cell, {
