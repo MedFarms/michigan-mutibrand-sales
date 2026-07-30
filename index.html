@@ -13,21 +13,26 @@
     /* Medfarms · Michigan — "Midnight" dark theme, purple accents.
        Black page so brand colors pop; white text for contrast. */
     --bg: #0a0a0c;             /* page — near-black */
-    --bg-elev: #16161a;        /* cards — raised charcoal */
-    --bg-elev-2: #202027;      /* table headers / hover surfaces */
-    --border: #2e2e37;
-    --border-soft: #24242b;
-    --text: #f4f2f7;           /* near-white */
-    --text-dim: #b3aec2;
-    --text-faint: #7d7791;
-    --accent: #d24fb0;         /* logo magenta — brightened for dark bg */
-    --accent-dim: #8a3a78;
-    --accent-deep: #7b5cc7;    /* logo indigo — brightened */
-    --warm: #e0993a;
-    --cool: #9a7fe0;
-    --rose: #e35a7e;           /* logo crimson — brightened */
-    --internal: #b06fe0;       /* purple — internal stores */
-    --internal-dim: #8e4fc0;
+    --bg-elev: #cbcad3;        /* cards — Lighter B */
+    --bg-elev-2: #bcbbc6;      /* section / table-header — one step darker */
+    --border: #c39ad2;         /* original lavender border (reads on light cards) */
+    --border-soft: #d8c8e2;    /* soft divider inside cards */
+    --text: #2c1b3d;           /* deep purple-black — for text ON cards */
+    --text-dim: #5e4a72;
+    --text-faint: #7a6690;
+    --accent: #a82d8a;         /* original magenta — reads on light cards */
+    --accent-dim: #c98ac0;
+    --accent-deep: #4b2e83;    /* original indigo */
+    --warm: #c77d22;
+    --cool: #6a4fb0;
+    --rose: #c23a5e;           /* original crimson */
+    --internal: #8e4fc0;       /* purple — internal stores */
+    --internal-dim: #6e3aa0;
+    /* Text that sits directly on the BLACK PAGE (not on a card) must stay light.
+       Cards use --text (dark) for content; the page chrome uses these. */
+    --text-on-bg: #f4f2f7;
+    --text-on-bg-dim: #b3aec2;
+    --text-on-bg-faint: #7d7791;
 
     /* surface + motion system */
     --radius: 10px;
@@ -41,7 +46,7 @@
 
   html, body {
     background: var(--bg);
-    color: var(--text);
+    color: var(--text-on-bg);
     font-family: 'Inter', sans-serif;
     font-size: 14px;
     line-height: 1.5;
@@ -72,7 +77,7 @@
     background: linear-gradient(90deg, var(--accent), transparent);
   }
   .brand-mark { display: flex; align-items: center; gap: 20px; }
-  .brand-name {
+  .brand-name { color: var(--text-on-bg);
     font-family: 'Fraunces', serif; font-weight: 500; font-size: 40px;
     letter-spacing: -0.025em; color: var(--text); line-height: 1;
   }
@@ -81,11 +86,11 @@
     margin-top: 9px; font-family: 'JetBrains Mono', monospace; font-size: 10.5px;
     text-transform: uppercase; letter-spacing: 0.22em; color: var(--text-faint);
   }
-  .topbar-meta {
+  .topbar-meta { color: var(--text-on-bg-dim);
     display: flex; gap: 18px; align-items: center;
     font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-dim);
   }
-  .topbar-meta strong { color: var(--text); font-weight: 500; }
+  .topbar-meta strong { color: var(--text-on-bg); font-weight: 500; }
   .pulse { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 12px var(--accent); animation: pulse 2s infinite; }
   @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
 
@@ -106,7 +111,7 @@
   }
   .tab:hover { color: var(--text); background: var(--bg-elev); }
   .tab-name { font-family: 'Space Grotesk', sans-serif; font-size: 19px; font-weight: 600; letter-spacing: -0.01em; }
-  .tab-sub { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text-faint); }
+  .tab-sub { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text-on-bg-faint); }
   .tab.active { color: var(--text); }
   .tab.active .tab-sub { color: var(--accent); }
   .tab.active::after {
@@ -193,9 +198,9 @@
 
   .section { margin-bottom: 34px; }
   .section-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 16px; }
-  .section-title { font-family: 'Fraunces', serif; font-weight: 500; font-size: 20px; letter-spacing: -0.01em; }
-  .section-title em { color: var(--text-dim); font-style: italic; font-weight: 400; }
-  .section-meta { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.12em; }
+  .section-title { font-family: 'Fraunces', serif; font-weight: 500; font-size: 20px; letter-spacing: -0.01em; color: var(--text-on-bg); }
+  .section-title em { color: var(--text-on-bg-dim); font-style: italic; font-weight: 400; }
+  .section-meta { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-on-bg-faint); text-transform: uppercase; letter-spacing: 0.12em; }
 
   .card { background: var(--bg-elev); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow-card); }
 
