@@ -10,28 +10,29 @@
 <style>
 
   :root {
-    /* Medfarms · Michigan — "Lavender" light theme, purple accents */
-    --bg: #DAB1DA;             /* page — light lavender (client spec) */
-    --bg-elev: #e2e1e8;        /* cards — gray (darker so white VPD shows) */
-    --bg-elev-2: #d5d4dd;      /* table headers / hover surfaces — gray */
-    --border: #c39ad2;
-    --border-soft: #e4d2ee;
-    --text: #2c1b3d;           /* deep purple-black */
-    --text-dim: #5e4a72;
-    --text-faint: #8a76a0;
-    --accent: #a82d8a;         /* logo magenta-purple — primary accent */
-    --accent-dim: #c98ac0;
-    --accent-deep: #4b2e83;    /* logo indigo (left of gradient) */
-    --warm: #c77d22;
-    --cool: #6a4fb0;
-    --rose: #c23a5e;           /* logo crimson */
-    --internal: #8e4fc0;       /* purple — internal stores */
-    --internal-dim: #6e3aa0;
+    /* Medfarms · Michigan — "Midnight" dark theme, purple accents.
+       Black page so brand colors pop; white text for contrast. */
+    --bg: #0a0a0c;             /* page — near-black */
+    --bg-elev: #16161a;        /* cards — raised charcoal */
+    --bg-elev-2: #202027;      /* table headers / hover surfaces */
+    --border: #2e2e37;
+    --border-soft: #24242b;
+    --text: #f4f2f7;           /* near-white */
+    --text-dim: #b3aec2;
+    --text-faint: #7d7791;
+    --accent: #d24fb0;         /* logo magenta — brightened for dark bg */
+    --accent-dim: #8a3a78;
+    --accent-deep: #7b5cc7;    /* logo indigo — brightened */
+    --warm: #e0993a;
+    --cool: #9a7fe0;
+    --rose: #e35a7e;           /* logo crimson — brightened */
+    --internal: #b06fe0;       /* purple — internal stores */
+    --internal-dim: #8e4fc0;
 
     /* surface + motion system */
     --radius: 10px;
     --radius-sm: 7px;
-    --shadow-card: 0 1px 0 rgba(255,255,255,0.6) inset, 0 12px 30px -20px rgba(70,30,110,0.45);
+    --shadow-card: 0 1px 0 rgba(255,255,255,0.05) inset, 0 12px 30px -20px rgba(0,0,0,0.7);
     --ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
     --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
   }
@@ -49,8 +50,8 @@
   }
   body {
     background-image:
-      radial-gradient(ellipse 1200px 600px at 80% -10%, rgba(124,58,237,0.08), transparent 60%),
-      radial-gradient(ellipse 800px 400px at 0% 100%, rgba(255,255,255,0.30), transparent 60%);
+      radial-gradient(ellipse 1200px 600px at 80% -10%, rgba(210,79,176,0.10), transparent 60%),
+      radial-gradient(ellipse 800px 400px at 0% 100%, rgba(123,92,199,0.10), transparent 60%);
   }
 
   .font-display { font-family: 'Fraunces', serif; font-variation-settings: "opsz" 144; letter-spacing: -0.02em; }
@@ -317,7 +318,7 @@
 .table-foot { padding:12px 16px; font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-faint);
   text-align:center; border-top:1px solid var(--border); }
 .bottom-nav { position:fixed; left:0; right:0; bottom:0; z-index:50; display:flex; justify-content:center; gap:6px;
-  padding:10px; background:rgba(21,36,26,0.92); backdrop-filter:blur(10px); border-top:1px solid var(--border); }
+  padding:10px; background:rgba(10,10,12,0.92); backdrop-filter:blur(10px); border-top:1px solid var(--border); }
 .bn-tab { font-family:'Space Grotesk',sans-serif; font-weight:500; font-size:13px; letter-spacing:.01em;
   padding:9px 22px; color:var(--text-dim); text-decoration:none; border-radius:var(--radius-sm);
   border:1px solid transparent; transition:all .15s var(--ease); }
