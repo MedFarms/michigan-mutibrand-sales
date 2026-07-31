@@ -39,6 +39,6 @@ jobs:
       - name: Run audit
         env:
           LEAFLINK_API_KEY: ${{ secrets.LEAFLINK_API_KEY }}
-          LEAFLINK_SELLER_ID: '9105'
-          LEAFLINK_FROM_DATE: '2020-01-01'
+          LEAFLINK_FROM_DATE: '2025-06-01'
+          LEAFLINK_MAX_PAGES: '40'
         run: python leaflink_credit_audit.py
