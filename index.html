@@ -584,6 +584,24 @@ const BRAND_COLORS = {
   "Other Brands": "#9dc1a9"
 };
 const brandColor = b => BRAND_COLORS[b] || "#9dc1a9";
+const brandChip = b => {
+  var c = brandColor(b);
+  if (b === "Covert Cups") return { color: "#eaf031", borderColor: "#eaf031", background: "#000", opacity: 1 };
+  if (b === "Value Pak Distro") return { color: "#ffffff", borderColor: "#ffffff", background: "#000", opacity: 1 };
+  return { color: c, borderColor: c };
+};
+function exportCSV(filename, columns, rows) {
+  const esc = v => { if (v == null) v = ''; v = String(v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+  const head = columns.map(c => esc(c.label)).join(',');
+  const body = rows.map(r => columns.map(c => { let val = typeof c.key === 'function' ? c.key(r) : r[c.key]; if (c.fmt) val = c.fmt(val, r); return esc(val); }).join(',')).join('\n');
+  const blob = new Blob([head + '\n' + body], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+function DownloadBtn(props) {
+  return React.createElement('button', { className: 'filter-select', onClick: props.onClick, style: { cursor: 'pointer', whiteSpace: 'nowrap' }, title: 'Download current view as CSV (opens in Excel)' }, '\u2193 CSV');
+}
 const BRAND_LABEL = {
   "Value Pak Distro": "Value Pak"
 };
@@ -2498,7 +2516,16 @@ function SalesDashboard({
   }, "Invoices"), /*#__PURE__*/React.createElement("button", {
     className: 'seg-btn' + (invByRep ? ' seg-active' : ''),
     onClick: () => setInvByRep(true)
-  }, "By rep")))), /*#__PURE__*/React.createElement("div", {
+  }, "By rep"))), /*#__PURE__*/React.createElement(DownloadBtn, {
+    onClick: () => exportCSV('invoices.csv', [
+      { key: 'invoice', label: 'Invoice #' },
+      { key: 'buyer', label: 'Buyer' },
+      { key: 'rep', label: 'Rep' },
+      { key: 'date', label: 'Date' },
+      { key: 'units', label: 'Units', fmt: v => (+v || 0) },
+      { key: 'revenue', label: 'Revenue', fmt: v => (+v || 0).toFixed(2) }
+    ], invoicesView)
+  })), /*#__PURE__*/React.createElement("div", {
     className: "card",
     style: {
       padding: 0,
@@ -2566,10 +2593,7 @@ function SalesDashboard({
   }, o.rep), /*#__PURE__*/React.createElement("td", null, o.brands.map((b, j) => /*#__PURE__*/React.createElement("span", {
     key: j,
     className: "chip",
-    style: {
-      color: brandColor(b),
-      borderColor: brandColor(b)
-    }
+    style: brandChip(b)
   }, brandLabel(b)))), /*#__PURE__*/React.createElement("td", {
     className: "num"
   }, fmtNum(o.units)), /*#__PURE__*/React.createElement("td", {
