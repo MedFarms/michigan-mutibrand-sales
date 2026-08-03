@@ -1897,6 +1897,7 @@ function SalesDashboard({
       if (!m[id]) m[id] = {
         id,
         invoice: r.order_number || id,
+        order_uid: r.order_uid || null,
         date: r._date ? ymd(r._date) : '—',
         _date: r._date,
         buyer: r.buyer_name || '—',
@@ -1917,6 +1918,32 @@ function SalesDashboard({
       bucket: o._date ? agingBucket(daysBetween(refDate, o._date)) : AGING[3]
     })).sort((a, b) => (b._date?.getTime() || 0) - (a._date?.getTime() || 0));
   }, [filtered, refDate]);
+
+  // Financial credits per order. The `credits` field repeats on every line-item
+  // row of an order, so dedupe by order id and take it once. Only orders with a
+  // positive credit are listed. Respects the current filters.
+  const creditOrders = useMemo(() => {
+    const m = {};
+    filtered.forEach(r => {
+      const id = r._id;
+      if (!id || m[id]) return;
+      const c = +r.credits || 0;
+      if (c <= 0) return;
+      m[id] = {
+        id,
+        invoice: r.order_number || id,
+        order_uid: r.order_uid || null,
+        date: r._date ? ymd(r._date) : '—',
+        _date: r._date,
+        buyer: r.buyer_name || '—',
+        rep: r._rep || '—',
+        credit: c,
+        total: +r.order_total || 0,
+      };
+    });
+    return Object.values(m).sort((a, b) => b.credit - a.credit);
+  }, [filtered]);
+  const creditTotal = useMemo(() => creditOrders.reduce((s, o) => s + o.credit, 0), [creditOrders]);
   const invoicesByRep = useMemo(() => {
     const src = invAging ? invoices.filter(o => o.bucket.key === invAging) : invoices;
     const m = {};
@@ -2519,7 +2546,14 @@ function SalesDashboard({
     style: {
       color: 'var(--accent)'
     }
-  }, o.invoice), /*#__PURE__*/React.createElement("td", {
+  }, o.order_uid ? /*#__PURE__*/React.createElement("a", {
+    href: 'https://app.leaflink.com/c/3843-Euclid/orders/' + o.order_uid + '/summary/',
+    target: "_blank",
+    rel: "noopener noreferrer",
+    onClick: e => e.stopPropagation(),
+    style: { color: 'var(--accent)', textDecoration: 'none', borderBottom: '1px dotted var(--accent)' },
+    title: "Open order in LeafLink"
+  }, o.invoice) : o.invoice), /*#__PURE__*/React.createElement("td", {
     className: "dim font-mono"
   }, o.date), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("span", {
     className: "pill",
@@ -2544,7 +2578,51 @@ function SalesDashboard({
     status: o.status
   }))))))), !invByRep && /*#__PURE__*/React.createElement(Pager, {
     pager: invPager
-  }))), /*#__PURE__*/React.createElement(Credits, null), /*#__PURE__*/React.createElement(StickyFooter, {
+  }))), creditOrders.length > 0 && /*#__PURE__*/React.createElement("section", {
+    className: "section",
+    style: { marginTop: 40 }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "section-header"
+  }, /*#__PURE__*/React.createElement("h2", {
+    className: "section-title"
+  }, "Credits ", /*#__PURE__*/React.createElement("em", null, "\xB7 from LeafLink")), /*#__PURE__*/React.createElement("div", {
+    className: "section-meta"
+  }, fmtNum(creditOrders.length), " order", creditOrders.length === 1 ? '' : 's', " \xB7 ", fmtMoneyFull(creditTotal), " total")), /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: { padding: 0, overflow: 'hidden' }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: { padding: '10px 16px', fontSize: 11, color: 'var(--text-dim)', borderBottom: '1px solid var(--border-soft)', fontFamily: "'JetBrains Mono', monospace" }
+  }, "Credit value recorded on each order in LeafLink, shown as-is."), /*#__PURE__*/React.createElement("div", {
+    style: { overflowX: 'auto', maxHeight: 420 }
+  }, /*#__PURE__*/React.createElement("table", {
+    className: "data-table"
+  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "Invoice #"), /*#__PURE__*/React.createElement("th", null, "Date"), /*#__PURE__*/React.createElement("th", null, "Buyer"), /*#__PURE__*/React.createElement("th", null, "Rep"), /*#__PURE__*/React.createElement("th", {
+    className: "num"
+  }, "Order Total"), /*#__PURE__*/React.createElement("th", {
+    className: "num"
+  }, "Credits"))), /*#__PURE__*/React.createElement("tbody", null, creditOrders.slice(0, 200).map((o, i) => /*#__PURE__*/React.createElement("tr", {
+    key: i
+  }, /*#__PURE__*/React.createElement("td", {
+    className: "font-mono",
+    style: { color: 'var(--accent)' }
+  }, o.order_uid ? /*#__PURE__*/React.createElement("a", {
+    href: 'https://app.leaflink.com/c/3843-Euclid/orders/' + o.order_uid + '/summary/',
+    target: "_blank",
+    rel: "noopener noreferrer",
+    style: { color: 'var(--accent)', textDecoration: 'none', borderBottom: '1px dotted var(--accent)' },
+    title: "Open order in LeafLink"
+  }, o.invoice) : o.invoice), /*#__PURE__*/React.createElement("td", {
+    className: "dim font-mono"
+  }, o.date), /*#__PURE__*/React.createElement("td", null, o.buyer), /*#__PURE__*/React.createElement("td", {
+    className: "dim"
+  }, o.rep), /*#__PURE__*/React.createElement("td", {
+    className: "num dim"
+  }, fmtMoneyFull(o.total)), /*#__PURE__*/React.createElement("td", {
+    className: "num",
+    style: { color: 'var(--accent)', fontWeight: 600 }
+  }, fmtMoneyFull(o.credit)))))))), creditOrders.length > 200 && /*#__PURE__*/React.createElement("div", {
+    className: "table-foot"
+  }, "Showing top 200 of ", fmtNum(creditOrders.length), " \xB7 narrow with filters")), /*#__PURE__*/React.createElement(Credits, null), /*#__PURE__*/React.createElement(StickyFooter, {
     nav: NAV,
     active: ACTIVE,
     brands: distinct.brands,
