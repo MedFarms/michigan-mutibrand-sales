@@ -590,6 +590,13 @@ const brandChip = b => {
   if (b === "Value Pak Distro") return { color: "#ffffff", borderColor: "#ffffff", background: "#000", opacity: 1 };
   return { color: c, borderColor: c };
 };
+// Inline (non-chip) brand name labels. Same rule as brandChip: Covert Cups =
+// electric yellow on solid black, Value Pak = white on solid black. Every other
+// brand keeps its plain brand-colored text.
+const brandTag = b => {
+  const s = brandChip(b);
+  return s.background ? { color: s.color, background: '#000', padding: '1px 6px', borderRadius: 4 } : { color: s.color };
+};
 function exportCSV(filename, columns, rows) {
   const esc = v => { if (v == null) v = ''; v = String(v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
   const head = columns.map(c => esc(c.label)).join(',');
@@ -2393,11 +2400,9 @@ function SalesDashboard({
     className: "num"
   }, "Avg $"))), /*#__PURE__*/React.createElement("tbody", null, productPager.slice.map((p, i) => /*#__PURE__*/React.createElement("tr", {
     key: i
-  }, /*#__PURE__*/React.createElement("td", null, p.name), /*#__PURE__*/React.createElement("td", {
-    style: {
-      color: brandColor(p.brand)
-    }
-  }, brandLabel(p.brand)), /*#__PURE__*/React.createElement("td", {
+  }, /*#__PURE__*/React.createElement("td", null, p.name), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("span", {
+    style: brandTag(p.brand)
+  }, brandLabel(p.brand))), /*#__PURE__*/React.createElement("td", {
     className: "num"
   }, fmtNum(p.units)), /*#__PURE__*/React.createElement("td", {
     className: "num"
