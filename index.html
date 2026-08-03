@@ -650,6 +650,9 @@ const QUICK_RANGES = [{
   key: 'today',
   label: 'Today'
 }, {
+  key: 'yesterday',
+  label: 'Yesterday'
+}, {
   key: 'week',
   label: 'Last week'
 }, {
@@ -673,6 +676,10 @@ const quickRangeDates = key => {
   if (key === 'today') return {
     from: to,
     to
+  };
+  if (key === 'yesterday') return {
+    from: back(1),
+    to: back(1)
   };
   if (key === 'week') return {
     from: back(7),
