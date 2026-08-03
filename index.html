@@ -362,6 +362,36 @@
 /* inputs readable on lavender page */
 .filter-input, .filter-select { background: var(--bg-elev); }
 
+/* --- multi-entry search box (type-ahead + chips) --- */
+.sb { position:relative; }
+.sb-box { display:flex; flex-wrap:wrap; align-items:center; gap:4px; min-height:38px; padding:4px 6px; cursor:text;
+  background:var(--bg-elev); border:1px solid var(--border); border-radius:var(--radius-sm);
+  transition:border-color .18s var(--ease); }
+.sb-box:focus-within { border-color:var(--accent-dim); }
+.sb-chip { display:inline-flex; align-items:center; gap:5px; max-width:190px; padding:3px 4px 3px 8px;
+  background:var(--accent-deep); color:var(--text-on-bg); border-radius:5px;
+  font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:.02em; }
+.sb-chip > span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.sb-x { background:none; border:none; padding:0 3px; cursor:pointer; line-height:1; font-size:13px;
+  color:rgba(255,255,255,.65); }
+.sb-x:hover { color:#fff; }
+.sb-input { flex:1 1 90px; min-width:90px; background:transparent; border:none; outline:none;
+  color:var(--text); font-family:'Inter',sans-serif; font-size:13px; padding:4px 2px; }
+.sb-input::placeholder { color:var(--text-faint); }
+.sb-clear { background:none; border:none; cursor:pointer; padding:2px 4px; color:var(--text-faint);
+  font-family:'JetBrains Mono',monospace; font-size:9px; text-transform:uppercase; letter-spacing:.08em; }
+.sb-clear:hover { color:var(--accent); }
+.sb-drop { position:absolute; z-index:140; top:calc(100% + 5px); left:0; right:0; min-width:240px;
+  max-height:270px; overflow-y:auto; background:var(--bg-elev); border:1px solid var(--border);
+  border-radius:var(--radius-sm); box-shadow:0 14px 34px -12px rgba(0,0,0,.55); }
+.sb-opt { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:7px 11px;
+  font-size:12px; color:var(--text); cursor:pointer; }
+.sb-opt-hi, .sb-opt:hover { background:var(--bg-elev-2); }
+.sb-opt-v { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.sb-opt-t { flex:none; font-family:'JetBrains Mono',monospace; font-size:9px; text-transform:uppercase;
+  letter-spacing:.07em; color:var(--text-faint); }
+.sb-hint { padding:9px 11px; font-size:11px; color:var(--text-dim); }
+
 /* brand buttons sit lower so they clear the topbar underline */
 .brand-btns { margin-top: 24px; }
 .brand-btn .brand-dot { box-shadow: 0 0 0 1px rgba(70,30,110,0.30) inset; }
@@ -590,6 +620,140 @@ const brandChip = b => {
   if (b === "Value Pak Distro") return { color: "#ffffff", borderColor: "#ffffff", background: "#000", opacity: 1 };
   return { color: c, borderColor: c };
 };
+// --- Multi-entry search --------------------------------------------------
+// `terms` is an array of strings. A row matches if ANY term appears in its
+// searchable text, so several buyers / invoices / products can be stacked in
+// one search. Empty array = no filtering.
+const matchesSearch = (terms, hay) => {
+  if (!terms || !terms.length) return true;
+  const h = String(hay).toLowerCase();
+  for (let i = 0; i < terms.length; i++) {
+    if (h.indexOf(String(terms[i]).toLowerCase()) !== -1) return true;
+  }
+  return false;
+};
+
+// Search field with live suggestions. Type to see matching values from the
+// dataset (tagged by what they are), Enter or click to pin one as a chip.
+// Enter also accepts free text that isn't in the list. Backspace on an empty
+// input removes the last chip.
+function SearchBox(props) {
+  const terms = props.terms || [];
+  const options = props.options || [];
+  const [q, setQ] = useState('');
+  const [open, setOpen] = useState(false);
+  const [hi, setHi] = useState(0);
+  const wrap = useRef(null);
+  const box = useRef(null);
+  useEffect(() => {
+    const away = e => {
+      if (wrap.current && !wrap.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener('mousedown', away);
+    return () => document.removeEventListener('mousedown', away);
+  }, []);
+  const matches = useMemo(() => {
+    const s = q.trim().toLowerCase();
+    if (!s) return [];
+    const taken = {};
+    terms.forEach(t => {
+      taken[String(t).toLowerCase()] = 1;
+    });
+    const hits = [];
+    for (let i = 0; i < options.length; i++) {
+      const o = options[i];
+      const lv = o.v.toLowerCase();
+      const at = lv.indexOf(s);
+      if (at === -1 || taken[lv]) continue;
+      hits.push({ v: o.v, t: o.t, at: at });
+      if (hits.length >= 300) break;
+    }
+    hits.sort((a, b) => a.at - b.at || a.v.length - b.v.length);
+    return hits.slice(0, 40);
+  }, [q, options, terms]);
+  const add = v => {
+    v = String(v == null ? '' : v).trim();
+    if (!v) return;
+    if (!terms.some(t => String(t).toLowerCase() === v.toLowerCase())) props.onChange(terms.concat([v]));
+    setQ('');
+    setHi(0);
+    setOpen(false);
+  };
+  const drop = i => props.onChange(terms.filter((_, j) => j !== i));
+  const onKey = e => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setOpen(true);
+      setHi(h => Math.min(h + 1, Math.max(matches.length - 1, 0)));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setHi(h => Math.max(h - 1, 0));
+    } else if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      add(open && matches[hi] ? matches[hi].v : q);
+    } else if (e.key === 'Escape') {
+      setOpen(false);
+    } else if (e.key === 'Backspace' && q === '' && terms.length) {
+      drop(terms.length - 1);
+    }
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    className: "sb",
+    ref: wrap
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "sb-box",
+    onClick: () => box.current && box.current.focus()
+  }, terms.map((t, i) => /*#__PURE__*/React.createElement("span", {
+    key: i,
+    className: "sb-chip",
+    title: t
+  }, /*#__PURE__*/React.createElement("span", null, t), /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    className: "sb-x",
+    title: "Remove",
+    onClick: e => {
+      e.stopPropagation();
+      drop(i);
+    }
+  }, "\u00d7"))), /*#__PURE__*/React.createElement("input", {
+    ref: box,
+    type: "text",
+    className: "sb-input",
+    placeholder: terms.length ? 'add another\u2026' : props.placeholder || 'search\u2026',
+    value: q,
+    onChange: e => {
+      setQ(e.target.value);
+      setOpen(true);
+      setHi(0);
+    },
+    onFocus: () => setOpen(true),
+    onKeyDown: onKey
+  }), terms.length > 1 && /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    className: "sb-clear",
+    title: "Clear all search terms",
+    onClick: e => {
+      e.stopPropagation();
+      props.onChange([]);
+    }
+  }, "clear")), open && q.trim().length > 0 && /*#__PURE__*/React.createElement("div", {
+    className: "sb-drop"
+  }, matches.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    className: "sb-hint"
+  }, "No match \u2014 press Enter to search this text anyway") : matches.map((m, i) => /*#__PURE__*/React.createElement("div", {
+    key: m.t + '|' + m.v,
+    className: 'sb-opt' + (i === hi ? ' sb-opt-hi' : ''),
+    onMouseEnter: () => setHi(i),
+    onMouseDown: e => {
+      e.preventDefault();
+      add(m.v);
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "sb-opt-v"
+  }, m.v), /*#__PURE__*/React.createElement("span", {
+    className: "sb-opt-t"
+  }, m.t)))));
+}
 // Inline (non-chip) brand name labels. Same rule as brandChip: Covert Cups =
 // electric yellow on solid black, Value Pak = white on solid black. Every other
 // brand keeps its plain brand-colored text.
@@ -1626,7 +1790,7 @@ function App() {
     brand: '',
     buyer: '',
     rep: '',
-    search: '',
+    search: [],
     lastOrder: '',
     excludeSamples: false
   });
@@ -1683,10 +1847,7 @@ function SalesDashboard({
     if (filters.buyer && r.buyer_name !== filters.buyer) return false;
     if (filters.rep && r._rep !== filters.rep) return false;
     if (filters.excludeSamples && r.is_sample) return false;
-    if (filters.search) {
-      const q = filters.search.toLowerCase();
-      if (!(String(r.order_number || '') + ' ' + String(r.buyer_name || '') + ' ' + String(r.product_name || '') + ' ' + String(r._rep || '')).toLowerCase().includes(q)) return false;
-    }
+    if (!matchesSearch(filters.search, String(r.order_number || '') + ' ' + String(r.buyer_name || '') + ' ' + String(r.product_name || '') + ' ' + String(r._rep || ''))) return false;
     return true;
   }), [normalized, filters]);
   const scopeValues = useMemo(() => {
@@ -1732,6 +1893,28 @@ function SalesDashboard({
     buyers: [...new Set(normalized.filter(r => r._bucket !== 'excluded').map(r => r.buyer_name).filter(Boolean))].sort(),
     reps: [...new Set(normalized.filter(r => r._bucket !== 'excluded').map(r => r._rep).filter(Boolean))].sort()
   }), [normalized]);
+
+  // Type-ahead suggestions for the search box, tagged by field.
+  const searchOptions = useMemo(() => {
+    const seen = {},
+      out = [];
+    const push = (v, t) => {
+      v = String(v == null ? '' : v).trim();
+      if (!v) return;
+      const k = t + '|' + v.toLowerCase();
+      if (seen[k]) return;
+      seen[k] = 1;
+      out.push({ v: v, t: t });
+    };
+    normalized.forEach(r => {
+      if (r._bucket === 'excluded') return;
+      push(r.order_number, 'invoice');
+      push(r.buyer_name, 'buyer');
+      push(r.product_name, 'product');
+      push(r._rep, 'rep');
+    });
+    return out;
+  }, [normalized]);
 
   // recency strip (per scope) — rolling windows: buyers + revenue per window
   const recency = useMemo(() => WINDOWS.map(w => {
@@ -2038,7 +2221,7 @@ function SalesDashboard({
     brand: '',
     buyer: '',
     rep: '',
-    search: '',
+    search: [],
     lastOrder: '',
     excludeSamples: false
   });
@@ -2141,16 +2324,16 @@ function SalesDashboard({
   }, q.label)))), /*#__PURE__*/React.createElement("div", {
     className: "filter-group",
     style: {
-      minWidth: 170
+      minWidth: 280,
+      flex: '1 1 280px'
     }
   }, /*#__PURE__*/React.createElement("label", {
     className: "filter-label"
-  }, "Search"), /*#__PURE__*/React.createElement("input", {
-    type: "text",
-    className: "filter-input",
-    placeholder: "invoice / buyer / product\u2026",
-    value: filters.search,
-    onChange: e => upd('search', e.target.value)
+  }, "Search"), /*#__PURE__*/React.createElement(SearchBox, {
+    terms: filters.search,
+    onChange: v => upd('search', v),
+    options: searchOptions,
+    placeholder: "invoice / buyer / product\u2026"
   })), /*#__PURE__*/React.createElement("div", {
     className: "filter-group",
     style: {
