@@ -381,6 +381,7 @@
 .sb-clear { background:none; border:none; cursor:pointer; padding:2px 4px; color:var(--text-faint);
   font-family:'JetBrains Mono',monospace; font-size:9px; text-transform:uppercase; letter-spacing:.08em; }
 .sb-clear:hover { color:var(--accent); }
+.sb-caret { flex:none; padding:0 4px; color:var(--text-dim); font-size:11px; pointer-events:none; }
 .sb-drop { position:absolute; z-index:140; top:calc(100% + 5px); left:0; right:0; min-width:240px;
   max-height:270px; overflow-y:auto; background:var(--bg-elev); border:1px solid var(--border);
   border-radius:var(--radius-sm); box-shadow:0 14px 34px -12px rgba(0,0,0,.55); }
@@ -654,7 +655,7 @@ function SearchBox(props) {
   }, []);
   const matches = useMemo(() => {
     const s = q.trim().toLowerCase();
-    if (!s) return [];
+    if (!s && !props.allOnFocus) return [];
     const taken = {};
     terms.forEach(t => {
       taken[String(t).toLowerCase()] = 1;
@@ -663,13 +664,14 @@ function SearchBox(props) {
     for (let i = 0; i < options.length; i++) {
       const o = options[i];
       const lv = o.v.toLowerCase();
-      const at = lv.indexOf(s);
-      if (at === -1 || taken[lv]) continue;
+      if (taken[lv]) continue;
+      const at = s ? lv.indexOf(s) : 0;
+      if (at === -1) continue;
       hits.push({ v: o.v, t: o.t, at: at });
-      if (hits.length >= 300) break;
+      if (hits.length >= 400) break;
     }
-    hits.sort((a, b) => a.at - b.at || a.v.length - b.v.length);
-    return hits.slice(0, 40);
+    if (s) hits.sort((a, b) => a.at - b.at || a.v.length - b.v.length);
+    return hits.slice(0, s ? 40 : 200);
   }, [q, options, terms]);
   const add = v => {
     v = String(v == null ? '' : v).trim();
@@ -690,7 +692,7 @@ function SearchBox(props) {
       setHi(h => Math.max(h - 1, 0));
     } else if (e.key === 'Enter' || e.key === ',') {
       e.preventDefault();
-      add(open && matches[hi] ? matches[hi].v : q);
+      if (open && matches[hi]) add(matches[hi].v);else if (!props.strict) add(q);
     } else if (e.key === 'Escape') {
       setOpen(false);
     } else if (e.key === 'Backspace' && q === '' && terms.length) {
@@ -736,11 +738,13 @@ function SearchBox(props) {
       e.stopPropagation();
       props.onChange([]);
     }
-  }, "clear")), open && q.trim().length > 0 && /*#__PURE__*/React.createElement("div", {
+  }, "clear"), props.allOnFocus && /*#__PURE__*/React.createElement("span", {
+    className: "sb-caret"
+  }, "\u25be")), open && (props.allOnFocus || q.trim().length > 0) && /*#__PURE__*/React.createElement("div", {
     className: "sb-drop"
   }, matches.length === 0 ? /*#__PURE__*/React.createElement("div", {
     className: "sb-hint"
-  }, "No match \u2014 press Enter to search this text anyway") : matches.map((m, i) => /*#__PURE__*/React.createElement("div", {
+  }, q.trim() ? props.strict ? "No match" : "No match \u2014 press Enter to search this text anyway" : "Nothing left to add") : matches.map((m, i) => /*#__PURE__*/React.createElement("div", {
     key: m.t + '|' + m.v,
     className: 'sb-opt' + (i === hi ? ' sb-opt-hi' : ''),
     onMouseEnter: () => setHi(i),
@@ -750,7 +754,7 @@ function SearchBox(props) {
     }
   }, /*#__PURE__*/React.createElement("span", {
     className: "sb-opt-v"
-  }, m.v), /*#__PURE__*/React.createElement("span", {
+  }, m.v), m.t && /*#__PURE__*/React.createElement("span", {
     className: "sb-opt-t"
   }, m.t)))));
 }
@@ -1788,7 +1792,7 @@ function App() {
     from: '',
     to: '',
     brand: '',
-    buyer: '',
+    buyer: [],
     rep: '',
     search: [],
     lastOrder: '',
@@ -1844,7 +1848,7 @@ function SalesDashboard({
       if (filters.to && k > filters.to) return false;
     }
     if (filters.brand && !r._primaries.includes(filters.brand)) return false;
-    if (filters.buyer && r.buyer_name !== filters.buyer) return false;
+    if (filters.buyer.length && filters.buyer.indexOf(r.buyer_name) === -1) return false;
     if (filters.rep && r._rep !== filters.rep) return false;
     if (filters.excludeSamples && r.is_sample) return false;
     if (!matchesSearch(filters.search, String(r.order_number || '') + ' ' + String(r.buyer_name || '') + ' ' + String(r.product_name || '') + ' ' + String(r._rep || ''))) return false;
@@ -1915,6 +1919,9 @@ function SalesDashboard({
     });
     return out;
   }, [normalized]);
+
+  // Options for the Buyer multi-select (no field tag needed - all buyers).
+  const buyerOptions = useMemo(() => distinct.buyers.map(b => ({ v: b, t: '' })), [distinct]);
 
   // recency strip (per scope) — rolling windows: buyers + revenue per window
   const recency = useMemo(() => WINDOWS.map(w => {
@@ -2219,7 +2226,7 @@ function SalesDashboard({
     from: '',
     to: '',
     brand: '',
-    buyer: '',
+    buyer: [],
     rep: '',
     search: [],
     lastOrder: '',
@@ -2292,18 +2299,21 @@ function SalesDashboard({
     },
     onClick: () => upd('lastOrder', filters.lastOrder === a.key ? '' : a.key)
   }, a.label)))), /*#__PURE__*/React.createElement("div", {
-    className: "filter-group"
+    className: "filter-group",
+    style: {
+      minWidth: 250,
+      flex: '1 1 250px'
+    }
   }, /*#__PURE__*/React.createElement("label", {
     className: "filter-label"
-  }, "Buyer"), /*#__PURE__*/React.createElement("select", {
-    className: "filter-select",
-    value: filters.buyer,
-    onChange: e => upd('buyer', e.target.value)
-  }, /*#__PURE__*/React.createElement("option", {
-    value: ""
-  }, "All"), distinct.buyers.map(b => /*#__PURE__*/React.createElement("option", {
-    key: b
-  }, b)))), /*#__PURE__*/React.createElement("div", {
+  }, "Buyer"), /*#__PURE__*/React.createElement(SearchBox, {
+    terms: filters.buyer,
+    onChange: v => upd('buyer', v),
+    options: buyerOptions,
+    allOnFocus: true,
+    strict: true,
+    placeholder: "All"
+  })), /*#__PURE__*/React.createElement("div", {
     className: "filter-group",
     style: {
       minWidth: 250
