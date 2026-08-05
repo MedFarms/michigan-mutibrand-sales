@@ -33,7 +33,11 @@ jobs:
           LEAFLINK_SELLER_ID: '9105'
           LEAFLINK_BRAND: ''
           LEAFLINK_FROM_DATE: '2020-01-01'
-          LEAFLINK_EXCLUDE_STATUSES: 'Cancelled,Rejected'
+          # 'Combined' orders are the originals that LeafLink merged into a
+          # replacement order. They still carry their full total, so counting
+          # them double-counts that revenue - LeafLink's own order report
+          # leaves them out. 'Draft' orders were never placed.
+          LEAFLINK_EXCLUDE_STATUSES: 'Cancelled,Rejected,Combined,Draft'
           LEAFLINK_PULL_INVENTORY: '1'
         run: python scraper.py
 
