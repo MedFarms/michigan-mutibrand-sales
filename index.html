@@ -564,9 +564,37 @@ const fmtMoneyFull = n => '$' + (n || 0).toLocaleString(undefined, {
 });
 const fmtNum = n => (Math.round(n) || 0).toLocaleString();
 const fmtPct = n => n == null || isNaN(n) ? '—' : (n >= 0 ? '' : '') + n.toFixed(1) + '%';
+// LeafLink stamps created_on in ITS OWN UTC-6/-7 offset, not Michigan time, so
+// the leading YYYY-MM-DD of the raw string is not the calendar date the order
+// shows against in LeafLink's own reports. An order placed at 00:30 in Michigan
+// arrives as the previous day at 21:30 in the feed, which silently pushes it
+// into the wrong day/week/month bucket. Convert the instant to the business
+// timezone first, then take the date.
+const BUSINESS_TZ = 'America/Detroit';
+const _tzDate = (() => {
+  try {
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: BUSINESS_TZ,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+  } catch (e) {
+    return null;
+  }
+})();
+
 const parseDate = str => {
   if (!str) return null;
   const s = String(str).trim();
+  // Timestamp carrying an explicit offset or Z -> re-express in Michigan time.
+  if (_tzDate && /^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}/.test(s) && /(Z|[+-]\d{2}:?\d{2})$/.test(s)) {
+    const inst = new Date(s);
+    if (!isNaN(inst)) {
+      const p = _tzDate.format(inst).split('-');
+      if (p.length === 3) return new Date(+p[0], +p[1] - 1, +p[2]);
+    }
+  }
   const ymdM = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (ymdM) return new Date(+ymdM[1], +ymdM[2] - 1, +ymdM[3]);
   const mdyM = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
