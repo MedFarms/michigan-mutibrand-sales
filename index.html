@@ -152,7 +152,7 @@
      so the Total card reconciles with LeafLink's own reports. */
   .scope-card.scope-excluded.active { border-color: var(--rose); box-shadow: inset 0 0 0 1px var(--rose); }
   .scope-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--text-faint); }
-  .scope-value { font-family: 'Fraunces', serif; font-size: 30px; line-height: 1.05; color: var(--text); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  .scope-value { font-family: 'Fraunces', serif; font-size: 30px; line-height: 1.05; color: var(--text); font-variant-numeric: tabular-nums; }
   .scope-card.active .scope-value { color: var(--accent); }
   .scope-card.scope-internal.active .scope-value { color: var(--internal); }
   .scope-card.scope-excluded.active .scope-value { color: var(--rose); }
@@ -410,11 +410,14 @@
 .scope-cards { gap: 16px; margin-bottom: 30px; }
 .scope-card { padding: 26px 28px; min-height: 132px; justify-content: center; gap: 10px; }
 .scope-label { font-size: 12px; letter-spacing: 0.16em; }
-/* Full, unrounded figures are much longer than the abbreviated ones, so the
-   display size drops to keep them on one line inside a quarter-width card. */
-.scope-value { font-size: 27px; line-height: 1.12; letter-spacing: -0.02em; }
-@media (max-width: 1400px) { .scope-value { font-size: 30px; } }
-@media (max-width: 1100px) { .scope-value { font-size: 34px; } }
+/* Full, unrounded figures are far longer than the abbreviated ones. The size is
+   fluid so a 15-character amount like $122,767,892.66 stays on ONE line inside a
+   quarter-width card; nowrap guarantees it never breaks mid-number. The size can
+   step up as the grid drops to 2 columns and then 1, because the cards widen. */
+.scope-value { font-size: clamp(15px, 1.3vw, 22px); line-height: 1.2; letter-spacing: -0.02em;
+  white-space: nowrap; overflow-wrap: normal; }
+@media (max-width: 1400px) { .scope-value { font-size: clamp(18px, 2.4vw, 27px); } }
+@media (max-width: 1100px) { .scope-value { font-size: clamp(20px, 5vw, 30px); } }
 
 /* Reset button — make it pop */
 .filter-reset-lg {
@@ -453,7 +456,11 @@
 /* --- revision: centered + larger card numbers, maximize card space --- */
 .kpi { align-items: center; text-align: center; justify-content: center; min-height: 124px; gap: 9px; padding: 24px 18px; }
 .kpi-label { text-align: center; }
-.kpi-value { font-size: 31px; line-height: 1.12; letter-spacing: -0.02em; overflow-wrap: anywhere; }
+/* Same reasoning as .scope-value — the KPI grid is 4 across, so a full amount
+   needs to be small enough to sit on one line in a quarter-width cell. */
+.kpi-value { font-size: clamp(15px, 1.35vw, 23px); line-height: 1.2; letter-spacing: -0.02em;
+  white-space: nowrap; overflow-wrap: normal; }
+@media (max-width: 1100px) { .kpi-value { font-size: clamp(18px, 4vw, 28px); } }
 .kpi-sub { text-align: center; font-size: 14px; }
 
 .scope-card { align-items: center; text-align: center; justify-content: center; min-height: 148px; }
@@ -1046,7 +1053,7 @@ function Topbar({
   }, section))), /*#__PURE__*/React.createElement("div", {
     className: "topbar-meta"
   }, /*#__PURE__*/React.createElement("a", {
-    href: "/",
+    href: "https://medfarms.analyticshub.workers.dev/",
     className: "tb-back"
   }, "\u2190 Back to main page"), right, ago != null && /*#__PURE__*/React.createElement("span", null, "Updated ", ago < 1 ? 'just now' : ago + 'm ago'), /*#__PURE__*/React.createElement("span", {
     className: "pulse"
@@ -1467,7 +1474,7 @@ function StickyFooter({
   })), /*#__PURE__*/React.createElement("div", {
     className: "sf-nav"
   }, /*#__PURE__*/React.createElement("a", {
-    href: "/",
+    href: "https://medfarms.analyticshub.workers.dev/",
     className: "bn-tab bn-back"
   }, "\u2190 Back to main page")));
 }
