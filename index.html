@@ -143,16 +143,21 @@
   .quick-pill.active { background: rgba(124,58,237,0.12); border-color: var(--accent-dim); color: var(--accent); }
 
   /* Scope cards */
-  .scope-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 30px; }
+  .scope-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 30px; }
   .scope-card { text-align: left; background: var(--bg-elev); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; cursor: pointer; display: flex; flex-direction: column; gap: 6px; transition: transform 0.2s var(--ease), border-color 0.2s var(--ease), background 0.2s var(--ease), box-shadow 0.2s var(--ease); }
   .scope-card:hover { border-color: var(--text-dim); background: var(--bg-elev-2); transform: translateY(-2px); }
   .scope-card.active { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
   .scope-card.scope-internal.active { border-color: var(--internal); box-shadow: inset 0 0 0 1px var(--internal); }
+  /* Exempted accounts — carved out of External/Internal, added back into Total
+     so the Total card reconciles with LeafLink's own reports. */
+  .scope-card.scope-excluded.active { border-color: var(--rose); box-shadow: inset 0 0 0 1px var(--rose); }
   .scope-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--text-faint); }
   .scope-value { font-family: 'Fraunces', serif; font-size: 30px; line-height: 1.05; color: var(--text); font-variant-numeric: tabular-nums; }
   .scope-card.active .scope-value { color: var(--accent); }
   .scope-card.scope-internal.active .scope-value { color: var(--internal); }
+  .scope-card.scope-excluded.active .scope-value { color: var(--rose); }
   .scope-sub { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-dim); }
+  @media (max-width: 1400px) { .scope-cards { grid-template-columns: repeat(2, 1fr); } }
   @media (max-width: 1100px) { .scope-cards { grid-template-columns: 1fr; } }
 
   /* Filter bar */
@@ -1038,7 +1043,7 @@ function Topbar({
   }, section))), /*#__PURE__*/React.createElement("div", {
     className: "topbar-meta"
   }, /*#__PURE__*/React.createElement("a", {
-    href: "https://medfarms.analyticshub.workers.dev/",
+    href: "/",
     className: "tb-back"
   }, "\u2190 Back to main page"), right, ago != null && /*#__PURE__*/React.createElement("span", null, "Updated ", ago < 1 ? 'just now' : ago + 'm ago'), /*#__PURE__*/React.createElement("span", {
     className: "pulse"
@@ -1149,7 +1154,7 @@ function Empty({
   }, /*#__PURE__*/React.createElement("h2", null, title), children);
 }
 
-/* ---- Scope cards (External / Internal / Total) ---------------------- */
+/* ---- Scope cards (External / Internal / Exempted / Total) ----------- */
 function ScopeCards({
   scope,
   setScope,
@@ -1158,20 +1163,25 @@ function ScopeCards({
   sub
 }) {
   const f = fmt || fmtMoney;
-  const items = [['external', 'External'], ['internal', 'Internal'], ['total', 'Total']];
+  const items = [['external', 'External'], ['internal', 'Internal'], ['excluded', 'Exempted stores'], ['total', 'Total']];
   return /*#__PURE__*/React.createElement("div", {
     className: "scope-cards"
-  }, items.map(([k, l]) => /*#__PURE__*/React.createElement("button", {
+  }, items.map(([k, l]) => {
+    // The exempted card names the accounts it covers, so nobody has to guess
+    // which stores are carved out of External and Internal.
+    const cardSub = k === 'excluded' ? EXCLUDE_ACCOUNTS.join(' \u00b7 ') : sub;
+    return /*#__PURE__*/React.createElement("button", {
     key: k,
-    className: 'scope-card' + (k === 'internal' ? ' scope-internal' : '') + (scope === k ? ' active' : ''),
+    className: 'scope-card' + (k === 'internal' ? ' scope-internal' : k === 'excluded' ? ' scope-excluded' : '') + (scope === k ? ' active' : ''),
     onClick: () => setScope(k)
   }, /*#__PURE__*/React.createElement("div", {
     className: "scope-label"
   }, l), /*#__PURE__*/React.createElement("div", {
     className: "scope-value tabular"
-  }, f(values[k] || 0)), sub && /*#__PURE__*/React.createElement("div", {
+  }, f(values[k] || 0)), cardSub && /*#__PURE__*/React.createElement("div", {
     className: "scope-sub"
-  }, sub))));
+  }, cardSub));
+  }));
 }
 
 /* ---- Colored brand filter buttons ----------------------------------- */
@@ -1454,7 +1464,7 @@ function StickyFooter({
   })), /*#__PURE__*/React.createElement("div", {
     className: "sf-nav"
   }, /*#__PURE__*/React.createElement("a", {
-    href: "https://medfarms.analyticshub.workers.dev/",
+    href: "/",
     className: "bn-tab bn-back"
   }, "\u2190 Back to main page")));
 }
@@ -1879,7 +1889,11 @@ function SalesDashboard({
 
   // rows passing every filter EXCEPT scope and lastOrder (basis for scope cards + recency)
   const preScope = useMemo(() => normalized.filter(r => {
-    if (r._bucket === 'excluded' || r._excludedStatus) return false;
+    // Exempted accounts are kept here (not dropped) so the Exempted scope
+    // card can total them and the Total card can reconcile with LeafLink.
+    // Every downstream view still filters by scope, so they only appear
+    // when Exempted or Total is selected.
+    if (r._excludedStatus) return false;
     if (filters.from || filters.to) {
       if (!r._date) return false;
       const k = ymd(r._date);
@@ -1895,14 +1909,18 @@ function SalesDashboard({
   }), [normalized, filters]);
   const scopeValues = useMemo(() => {
     let ext = 0,
-      int = 0;
+      int = 0,
+      exc = 0;
     preScope.forEach(r => {
-      if (r._bucket === 'wholesale') ext += r._revenue;else if (r._bucket === 'internal') int += r._revenue;
+      if (r._bucket === 'wholesale') ext += r._revenue;else if (r._bucket === 'internal') int += r._revenue;else if (r._bucket === 'excluded') exc += r._revenue;
     });
     return {
       external: ext,
       internal: int,
-      total: ext + int
+      excluded: exc,
+      // Total now includes the exempted accounts so it ties out against
+      // LeafLink's order report, which has no concept of the carve-out.
+      total: ext + int + exc
     };
   }, [preScope]);
 
@@ -1914,7 +1932,7 @@ function SalesDashboard({
     });
     return mx || new Date();
   }, [normalized]);
-  const inScope = r => scope === 'total' ? r._bucket === 'wholesale' || r._bucket === 'internal' : scope === 'external' ? r._bucket === 'wholesale' : r._bucket === 'internal';
+  const inScope = r => scope === 'total' ? r._bucket === 'wholesale' || r._bucket === 'internal' || r._bucket === 'excluded' : scope === 'external' ? r._bucket === 'wholesale' : scope === 'excluded' ? r._bucket === 'excluded' : r._bucket === 'internal';
   const scoped = useMemo(() => preScope.filter(inScope), [preScope, scope]);
   const buyerLastOrder = useMemo(() => {
     const last = {};
@@ -2059,6 +2077,32 @@ function SalesDashboard({
       mom: i > 0 && arr[i - 1].net ? (x.net - arr[i - 1].net) / arr[i - 1].net * 100 : null
     }));
   }, [filtered]);
+
+  // Exempted stores — carved out of External and Internal but included in
+  // Total. Listed on their own below so the revenue is visible and auditable
+  // rather than silently dropped. Follows the date/brand/search filters but
+  // deliberately ignores the scope selection, so it's always on screen.
+  const exemptOrders = useMemo(() => {
+    const m = {};
+    preScope.forEach(r => {
+      if (r._bucket !== 'excluded') return;
+      const id = r._id;
+      if (!m[id]) m[id] = {
+        id: id,
+        uid: r.order_uid,
+        invoice: r.order_number || id,
+        date: r._date ? ymd(r._date) : '\u2014',
+        buyer: r.buyer_name || '\u2014',
+        rep: r._rep || '\u2014',
+        status: r.order_status || '\u2014',
+        units: 0,
+        revenue: 0
+      };
+      m[id].units += r._units;
+      m[id].revenue += r._revenue;
+    });
+    return Object.values(m).sort((a, b) => b.date.localeCompare(a.date));
+  }, [preScope]);
   const focusRows = useMemo(() => selectedOrder ? filtered.filter(r => r._id === selectedOrder) : filtered, [filtered, selectedOrder]);
   const selInvoice = useMemo(() => {
     if (!selectedOrder) return null;
@@ -2890,7 +2934,66 @@ function SalesDashboard({
     style: { color: 'var(--accent)', fontWeight: 600 }
   }, fmtMoneyFull(o.credit)))))))), creditOrders.length > 200 && /*#__PURE__*/React.createElement("div", {
     className: "table-foot"
-  }, "Showing top 200 of ", fmtNum(creditOrders.length), " \xB7 narrow with filters")), /*#__PURE__*/React.createElement(Credits, null), /*#__PURE__*/React.createElement(StickyFooter, {
+  }, "Showing top 200 of ", fmtNum(creditOrders.length), " \xB7 narrow with filters")), exemptOrders.length > 0 && /*#__PURE__*/React.createElement("section", {
+    className: "section"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "section-header"
+  }, /*#__PURE__*/React.createElement("h2", {
+    className: "section-title"
+  }, "Exempted ", /*#__PURE__*/React.createElement("em", null, "stores")), /*#__PURE__*/React.createElement("span", {
+    className: "section-meta"
+  }, EXCLUDE_ACCOUNTS.join(' \u00b7 '), " \u00b7 ", fmtNum(exemptOrders.length), " invoices \u00b7 ", fmtMoneyFull(exemptOrders.reduce((s, o) => s + o.revenue, 0)))), /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      padding: 0,
+      overflow: 'hidden'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      overflowX: 'auto',
+      maxHeight: 460
+    }
+  }, /*#__PURE__*/React.createElement("table", {
+    className: "data-table"
+  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "Invoice #"), /*#__PURE__*/React.createElement("th", null, "Date"), /*#__PURE__*/React.createElement("th", null, "Buyer"), /*#__PURE__*/React.createElement("th", null, "Rep"), /*#__PURE__*/React.createElement("th", null, "Status"), /*#__PURE__*/React.createElement("th", {
+    className: "num"
+  }, "Units"), /*#__PURE__*/React.createElement("th", {
+    className: "num"
+  }, "Net Revenue"))), /*#__PURE__*/React.createElement("tbody", null, exemptOrders.slice(0, 200).map((o, i) => /*#__PURE__*/React.createElement("tr", {
+    key: i
+  }, /*#__PURE__*/React.createElement("td", {
+    className: "font-mono",
+    style: {
+      color: 'var(--accent)'
+    }
+  }, o.uid ? /*#__PURE__*/React.createElement("a", {
+    href: 'https://app.leaflink.com/c/3843-Euclid/orders/' + o.uid + '/summary/',
+    target: "_blank",
+    rel: "noopener noreferrer",
+    style: {
+      color: 'var(--accent)',
+      textDecoration: 'none',
+      borderBottom: '1px dotted var(--accent)'
+    },
+    title: "Open order in LeafLink"
+  }, o.invoice) : o.invoice), /*#__PURE__*/React.createElement("td", {
+    className: "dim font-mono"
+  }, o.date), /*#__PURE__*/React.createElement("td", null, o.buyer), /*#__PURE__*/React.createElement("td", {
+    className: "dim"
+  }, o.rep), /*#__PURE__*/React.createElement("td", {
+    className: "dim"
+  }, o.status), /*#__PURE__*/React.createElement("td", {
+    className: "num"
+  }, fmtNum(o.units)), /*#__PURE__*/React.createElement("td", {
+    className: "num"
+  }, /*#__PURE__*/React.createElement("strong", null, fmtMoneyFull(o.revenue))))))), exemptOrders.length > 200 && /*#__PURE__*/React.createElement("tfoot", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
+    colSpan: 7,
+    className: "dim",
+    style: {
+      textAlign: 'center',
+      padding: '10px 0'
+    }
+  }, "Showing the 200 most recent of ", fmtNum(exemptOrders.length), " \u00b7 narrow with filters")))))), /*#__PURE__*/React.createElement(Credits, null), /*#__PURE__*/React.createElement(StickyFooter, {
     nav: NAV,
     active: ACTIVE,
     brands: distinct.brands,
