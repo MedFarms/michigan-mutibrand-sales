@@ -2,15 +2,27 @@ name: Scrape LeafLink Sales (All Brands)
 
 on:
   workflow_dispatch:
+    inputs:
+      incremental_days:
+        description: "Days to pull (0 = full backfill from LEAFLINK_FROM_DATE)"
+        required: false
+        default: '7'
   push:
     branches: [main]
+  schedule:
+    # Weekly full refresh, so orders amended outside the incremental window
+    # still get corrected. Sundays 09:00 UTC.
+    - cron: '0 9 * * 0'
 
 permissions:
   contents: write
 
 concurrency:
   group: scrape-leaflink-mi
-  cancel-in-progress: false
+  # A newer run supersedes an older one. Each run rewrites the whole data file,
+  # so a superseded run has nothing worth finishing - and without this, runs
+  # triggered every 10 minutes stack up behind each other when one runs long.
+  cancel-in-progress: true
 
 jobs:
   scrape:
@@ -33,6 +45,11 @@ jobs:
           LEAFLINK_SELLER_ID: '9105'
           LEAFLINK_BRAND: ''
           LEAFLINK_FROM_DATE: '2020-01-01'
+          # Incremental mode: pull only the last N days and merge into the
+          # committed file instead of rescanning 2020->today on every run. The
+          # scraper still does a full backfill on the first run, or any run where
+          # the committed data isn't yet complete back to LEAFLINK_FROM_DATE.
+          LEAFLINK_INCREMENTAL_DAYS: ${{ github.event_name == 'schedule' && '0' || (github.event.inputs.incremental_days || '7') }}
           # 'Combined' orders are the originals that LeafLink merged into a
           # replacement order. They still carry their full total, so counting
           # them double-counts that revenue - LeafLink's own order report
