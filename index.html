@@ -475,6 +475,14 @@
 .focus-clear { font-family:'JetBrains Mono',monospace; font-size:11px; padding:5px 12px; background:var(--accent);
   color:#fff; border:none; border-radius:999px; cursor:pointer; letter-spacing:.06em; }
 
+/* Header back-to-hub link — same destination as the sticky footer, so the
+   page can be left from the top without scrolling to the bottom first. */
+.tb-back { display:inline-flex; align-items:center; padding:6px 13px; border-radius:999px;
+  border:1px solid var(--accent); color:var(--text-on-bg); text-decoration:none; font-weight:600;
+  font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:.06em; white-space:nowrap;
+  transition:background .18s var(--ease), color .18s var(--ease), border-color .18s var(--ease); }
+.tb-back:hover { background:var(--accent-deep); color:#fff; border-color:var(--accent); }
+
 /* Sticky-footer back-to-hub link */
 .bn-back { color: var(--text); border-color: var(--accent); font-weight: 600; }
 .bn-back:hover { background: var(--accent-deep); color: #fff !important; border-color: var(--accent); }
@@ -1029,7 +1037,10 @@ function Topbar({
     }
   }, section))), /*#__PURE__*/React.createElement("div", {
     className: "topbar-meta"
-  }, right, ago != null && /*#__PURE__*/React.createElement("span", null, "Updated ", ago < 1 ? 'just now' : ago + 'm ago'), /*#__PURE__*/React.createElement("span", {
+  }, /*#__PURE__*/React.createElement("a", {
+    href: "https://medfarms.analyticshub.workers.dev/",
+    className: "tb-back"
+  }, "\u2190 Back to main page"), right, ago != null && /*#__PURE__*/React.createElement("span", null, "Updated ", ago < 1 ? 'just now' : ago + 'm ago'), /*#__PURE__*/React.createElement("span", {
     className: "pulse"
   })));
 }
