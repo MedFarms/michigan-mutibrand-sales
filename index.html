@@ -956,9 +956,45 @@ const buildOrderBrands = rows => {
 };
 
 // Normalize rows into the working shape every sales-style dashboard uses.
+
+// LeafLink stores ONE total per order; we sum the individual line items so
+// revenue can be split by brand, product and rep. Each line is stored rounded
+// to the cent, and those roundings do not always add back up to the order
+// total - a handful of cents per order, in either direction. Left alone the
+// dashboard lands a few cents away from LeafLink on any given filter.
+//
+// This pass removes that. For every order the residual (order total minus the
+// summed lines) is pushed onto the single largest line, which is the smallest
+// possible distortion and keeps each brand's share intact to the cent. Orders
+// with no total, or whose lines already tie out, are untouched.
+const reconcileToOrderTotal = rows => {
+  const byOrder = {};
+  rows.forEach(r => {
+    const id = r._id;
+    if (!id) return;
+    (byOrder[id] || (byOrder[id] = [])).push(r);
+  });
+  Object.keys(byOrder).forEach(id => {
+    const lines = byOrder[id];
+    const total = parseMoney(lines[0].order_total);
+    if (!total) return;
+    let sum = 0;
+    for (const l of lines) sum += l._revenue;
+    const residual = Math.round((total - sum) * 100) / 100;
+    if (!residual) return;
+    // Only nudge rounding-sized gaps. Anything larger is a real difference
+    // (order-level credits, an amended order) and must not be papered over.
+    if (Math.abs(residual) > 0.5 * lines.length + 0.5) return;
+    let biggest = lines[0];
+    for (const l of lines) if (Math.abs(l._revenue) > Math.abs(biggest._revenue)) biggest = l;
+    biggest._revenue = Math.round((biggest._revenue + residual) * 100) / 100;
+  });
+  return rows;
+};
+
 const normalizeRows = rows => {
   const ob = buildOrderBrands(rows);
-  return rows.map(r => {
+  return reconcileToOrderTotal(rows.map(r => {
     const id = r.order_uid || r.order_number || '';
     const bset = ob[id] ? [...ob[id]] : [];
     const prims = bset.filter(isPrimaryName);
@@ -980,7 +1016,7 @@ const normalizeRows = rows => {
       _hasOther: bset.some(b => !isPrimaryName(b)),
       _excludedStatus: !!EXCLUDED_STATUS[String(r.order_status || '').trim().toLowerCase()]
     };
-  });
+  }));
 };
 
 /* ---- Data loader (gz via pako, plain-json fallback) ----------------- */
