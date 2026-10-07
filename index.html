@@ -610,7 +610,12 @@ const _tzDate = (() => {
   }
 })();
 
-const parseDate = str => {
+// Memoized by raw string: the same timestamp always yields the same date, and
+// timestamps repeat heavily across an order's line items (167k calls collapse to
+// ~27k unique parses). The compute path below is byte-for-byte the original
+// logic, so results are identical — this only avoids recomputing them.
+const _parseDateCache = new Map();
+const _parseDateRaw = str => {
   if (!str) return null;
   const s = String(str).trim();
   // Timestamp carrying an explicit offset or Z -> re-express in Michigan time.
@@ -627,6 +632,13 @@ const parseDate = str => {
   if (mdyM) return new Date(+mdyM[3], +mdyM[1] - 1, +mdyM[2]);
   const d = new Date(s);
   return isNaN(d) ? null : d;
+};
+const parseDate = str => {
+  const key = str == null ? '' : String(str);
+  if (_parseDateCache.has(key)) return _parseDateCache.get(key);
+  const v = _parseDateRaw(str);
+  _parseDateCache.set(key, v);
+  return v;
 };
 const ymd = d => {
   if (!(d instanceof Date) || isNaN(d)) return '';
