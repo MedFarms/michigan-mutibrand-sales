@@ -7,8 +7,6 @@ on:
         description: "Days to pull (0 = full backfill from LEAFLINK_FROM_DATE)"
         required: false
         default: '7'
-  push:
-    branches: [main]
   schedule:
     # Frequent incremental refresh so "today" / "yesterday" stay current.
     # Every 30 minutes: pulls only the last few days and MERGES into the
