@@ -1,0 +1,97 @@
+name: Correction Sweep (daily)
+
+# WHAT THIS FIXES
+# ----------------
+# The 30-minute scraper (scrape.yml) only re-checks the last 7 days of orders.
+# If an order is CANCELLED, COMBINED, or AMENDED more than 7 days after it was
+# placed, that change never gets pulled in, so the dashboard slowly drifts above
+# LeafLink (voided revenue stays counted). The old weekly full backfill was meant
+# to catch this, but it scanned 2020->today (too big) and got cancelled by the
+# 30-minute runs, so it never actually ran.
+#
+# This workflow replaces it with a bounded DAILY sweep that re-pulls a wide
+# recent window and merges. Any order whose status changed within the window is
+# re-fetched and corrected; a late-cancelled order is re-fetched and drops out of
+# the merge. It never does the giant 2020 full pull.
+#
+# WHY IT CAN'T BE CANCELLED LIKE THE OLD ONE
+# -------------------------------------------
+# It runs in its OWN concurrency group (scrape-leaflink-mi-sweep), separate from
+# the 30-minute workflow's group (scrape-leaflink-mi). The two can no longer
+# cancel each other, so this sweep always runs to completion.
+
+on:
+  workflow_dispatch:
+    inputs:
+      window_days:
+        description: "Days back to re-verify and correct (default 90)"
+        required: false
+        default: '90'
+  schedule:
+    # Once a day at 08:17 UTC. The odd minute keeps it off the :00/:30 ticks the
+    # 30-minute scraper runs on. (Different concurrency groups mean an overlap
+    # wouldn't cancel anything anyway - this just avoids piling up at the same minute.)
+    - cron: '17 8 * * *'
+
+permissions:
+  contents: write
+
+concurrency:
+  # Deliberately a DIFFERENT group from scrape.yml so the frequent 30-minute runs
+  # can never cancel this sweep (and vice-versa). cancel-in-progress is false so a
+  # queued daily run never kills one that's mid-flight.
+  group: scrape-leaflink-mi-sweep
+  cancel-in-progress: false
+
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run correction sweep
+        env:
+          LEAFLINK_API_KEY: ${{ secrets.LEAFLINK_API_KEY }}
+          LEAFLINK_SELLER_ID: '9105'
+          LEAFLINK_BRAND: ''
+          # Must match the committed data's backfill date (2020-01-01) so the run
+          # stays in INCREMENTAL (windowed merge) mode and does NOT trigger a full
+          # 2020->today pull. The window below is what bounds the work.
+          LEAFLINK_FROM_DATE: '2020-01-01'
+          # Wide re-verification window. Re-pulls the last N days every day and
+          # merges, correcting any status change (cancelled / combined / amended)
+          # on orders placed within the window. 90 days covers essentially all
+          # real-world late changes; raise it if you ever need to reach deeper.
+          LEAFLINK_INCREMENTAL_DAYS: ${{ github.event.inputs.window_days || '90' }}
+          LEAFLINK_EXCLUDE_STATUSES: 'Cancelled,Rejected,Combined,Draft'
+          LEAFLINK_PULL_INVENTORY: '1'
+        run: python scraper.py
+
+      - name: Commit updated data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # Same binary-safe commit as scrape.yml: sync to the latest remote first,
+          # lay our regenerated file on top, retry if the remote moves under us.
+          ok=0
+          for i in 1 2 3; do
+            git fetch origin main
+            git reset --mixed origin/main
+            git add sales_data.json.gz
+            if git diff --staged --quiet; then
+              echo "No corrections to commit."; ok=1; break
+            fi
+            git commit -m "Correction sweep: sales_data.json.gz [skip ci]"
+            if git push origin main; then ok=1; break; fi
+            echo "Push raced with remote (attempt $i) - re-syncing..."; sleep 3
+          done
+          [ "$ok" = "1" ] || { echo "Could not push after retries"; exit 1; }
