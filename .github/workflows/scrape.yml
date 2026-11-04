@@ -12,9 +12,12 @@ on:
     # Every 30 minutes: pulls only the last few days and MERGES into the
     # committed file (fast, rate-limit friendly). Uses the default 7-day window.
     - cron: '*/30 * * * *'
-    # Weekly FULL refresh, so orders amended outside the incremental window
-    # (status changes, edits on older orders) still get corrected. Sundays 09:00 UTC.
-    - cron: '0 9 * * 0'
+    # NOTE: the weekly full backfill (Sundays 09:00 UTC) was REMOVED from here.
+    # It scanned 2020->today - too big to finish - and because this workflow
+    # cancels its own in-progress runs (cancel-in-progress below), the 30-minute
+    # ticks killed it before it could complete, so older-order corrections never
+    # landed. Those corrections now run in a SEPARATE workflow, correction-sweep.yml,
+    # which has its own concurrency group and can't be cancelled by these runs.
 
 permissions:
   contents: write
@@ -52,15 +55,10 @@ jobs:
           # scraper still does a full backfill on the first run, or any run where
           # the committed data isn't yet complete back to LEAFLINK_FROM_DATE.
           #
-          # Schedule behaviour:
-          #   - The WEEKLY cron (Sundays 09:00 UTC) does a full backfill ('0') to
-          #     correct any older orders that changed outside the incremental window.
-          #   - The 30-MINUTE cron does an incremental 7-day merge (fast).
-          #   - Manual runs use the incremental_days input (default 7).
-          # Only the Sunday 09:00 tick backfills; every other scheduled tick is incremental.
-          LEAFLINK_INCREMENTAL_DAYS: >-
-            ${{ (github.event_name == 'schedule' && github.event.schedule == '0 9 * * 0') && '0'
-                || (github.event.inputs.incremental_days || '7') }}
+          # This workflow is now purely the fast 30-minute incremental (7-day
+          # window). Corrections to older orders are handled by correction-sweep.yml.
+          # Manual runs can still force a full backfill by setting days to 0.
+          LEAFLINK_INCREMENTAL_DAYS: ${{ github.event.inputs.incremental_days || '7' }}
           # 'Combined' orders are the originals that LeafLink merged into a
           # replacement order. They still carry their full total, so counting
           # them double-counts that revenue - LeafLink's own order report
